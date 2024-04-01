@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="allocators">
+      <UniqueIdentifier>{393280DC-25EA-C129-8EF1-9A857AC85C1A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="memory">
+      <UniqueIdentifier>{DEA8820D-CA4A-ADE3-B305-C1379F463434}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="allocators\allocator_base.h">
+      <Filter>allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="allocators\block_allocator.h">
+      <Filter>allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="console.h" />
+    <ClInclude Include="macros.h" />
+    <ClInclude Include="managed_ptr.h" />
+    <ClInclude Include="memory\contiguous_memory.h">
+      <Filter>memory</Filter>
+    </ClInclude>
+    <ClInclude Include="memory\memory.h">
+      <Filter>memory</Filter>
+    </ClInclude>
+    <ClInclude Include="memory\memory_view.h">
+      <Filter>memory</Filter>
+    </ClInclude>
+    <ClInclude Include="ptr.h" />
+    <ClInclude Include="range.h" />
+    <ClInclude Include="types.h" />
+    <ClInclude Include="typeid.h" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="dialects">
+      <UniqueIdentifier>{4E2F2D42-3AFC-874D-6315-76F54F41BDDB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="intermediate_representation">
+      <UniqueIdentifier>{9289A667-FE96-D44D-877D-D038F389A004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="intermediate_representation\node_hierarchy">
+      <UniqueIdentifier>{45AB453E-3113-0C0C-9A7E-2022860523F8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="passes">
+      <UniqueIdentifier>{541A3D14-40BC-67EA-2977-7B3E15B8EE3A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="targets">
+      <UniqueIdentifier>{5FABB0CF-CB8A-2F6B-D4A2-BA41400196CC}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dialects\core_dialect.h">
+      <Filter>dialects</Filter>
+    </ClInclude>
+    <ClInclude Include="dialects\gpu_dialect.h">
+      <Filter>dialects</Filter>
+    </ClInclude>
+    <ClInclude Include="intermediate_representation\dialect.h">
+      <Filter>intermediate_representation</Filter>
+    </ClInclude>
+    <ClInclude Include="intermediate_representation\module.h">
+      <Filter>intermediate_representation</Filter>
+    </ClInclude>
+    <ClInclude Include="intermediate_representation\module_data.h">
+      <Filter>intermediate_representation</Filter>
+    </ClInclude>
+    <ClInclude Include="intermediate_representation\node_hierarchy\data_type.h">
+      <Filter>intermediate_representation\node_hierarchy</Filter>
+    </ClInclude>
+    <ClInclude Include="intermediate_representation\node_hierarchy\function.h">
+      <Filter>intermediate_representation\node_hierarchy</Filter>
+    </ClInclude>
+    <ClInclude Include="intermediate_representation\node_hierarchy\node.h">
+      <Filter>intermediate_representation\node_hierarchy</Filter>
+    </ClInclude>
+    <ClInclude Include="pass.h" />
+    <ClInclude Include="passes\ir_printer_pass.h">
+      <Filter>passes</Filter>
+    </ClInclude>
+    <ClInclude Include="target.h" />
+    <ClInclude Include="targets\x64_target.h">
+      <Filter>targets</Filter>
+    </ClInclude>
+    <ClInclude Include="translation_engine.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dialects\core_dialect.cpp">
+      <Filter>dialects</Filter>
+    </ClCompile>
+    <ClCompile Include="dialects\gpu_dialect.cpp">
+      <Filter>dialects</Filter>
+    </ClCompile>
+    <ClCompile Include="intermediate_representation\dialect.cpp">
+      <Filter>intermediate_representation</Filter>
+    </ClCompile>
+    <ClCompile Include="intermediate_representation\module_data.cpp">
+      <Filter>intermediate_representation</Filter>
+    </ClCompile>
+    <ClCompile Include="intermediate_representation\node_hierarchy\data_type.cpp">
+      <Filter>intermediate_representation\node_hierarchy</Filter>
+    </ClCompile>
+    <ClCompile Include="intermediate_representation\node_hierarchy\function.cpp">
+      <Filter>intermediate_representation\node_hierarchy</Filter>
+    </ClCompile>
+    <ClCompile Include="intermediate_representation\node_hierarchy\node.cpp">
+      <Filter>intermediate_representation\node_hierarchy</Filter>
+    </ClCompile>
+    <ClCompile Include="passes\ir_printer_pass.cpp">
+      <Filter>passes</Filter>
+    </ClCompile>
+    <ClCompile Include="targets\x64_target.cpp">
+      <Filter>targets</Filter>
+    </ClCompile>
+    <ClCompile Include="translation_engine.cpp" />
+  </ItemGroup>
+</Project>
