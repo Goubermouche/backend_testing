@@ -1,13 +1,13 @@
 #include "gpu_dialect.h"
 
 namespace baremetal {
-	auto gpu_dialect::get_label(u16 id) const -> std::string_view {
-		SUPPRESS_C4100(id);
+	auto gpu_dialect::get_label(ptr<ir::node> node) const -> std::string_view {
+		SUPPRESS_C4100(node);
 		return "gpu test";
 	}
 
-	auto gpu_dialect::get_color(u16 id) const -> std::string_view {
-		SUPPRESS_C4100(id);
+	auto gpu_dialect::get_color(ptr<ir::node> node) const -> std::string_view {
+		SUPPRESS_C4100(node);
 		return "green";
 	}
 

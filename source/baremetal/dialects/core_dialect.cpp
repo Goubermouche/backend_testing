@@ -1,8 +1,8 @@
 #include "core_dialect.h"
 
 namespace baremetal {
-	auto core_dialect::get_label(u16 id) const -> std::string_view {
-		switch(id) {
+	auto core_dialect::get_label(ptr<ir::node> node) const -> std::string_view {
+		switch(node->get_id().get_node_id()) {
 			case static_cast<u16>(core_node::ENTRY):        return "ENTRY";
 			case static_cast<u16>(core_node::EXIT):         return "EXIT";
 			case static_cast<u16>(core_node::REGION):       return "REGION";

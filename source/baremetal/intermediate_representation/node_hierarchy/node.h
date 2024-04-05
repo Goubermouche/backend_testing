@@ -25,11 +25,12 @@ namespace baremetal::ir {
 
 	class node_id {
 	public:
-		constexpr node_id(u64 dialect, u16 id) : m_dialect(dialect), m_node_id(id) {}
+		constexpr node_id() : m_dialect(0), m_node_id(0) {}
+		constexpr node_id(u8 dialect, u16 id) : m_dialect(dialect), m_node_id(id) {}
 
 		auto operator==(const node_id& other) const -> bool;
 
-		[[nodiscard]] constexpr auto get_dialect_id() const -> u64 {
+		[[nodiscard]] constexpr auto get_dialect_id() const -> u8 {
 			return m_dialect;
 		}
 
@@ -37,7 +38,7 @@ namespace baremetal::ir {
 			return m_node_id;
 		}
 	private:
-		u64 m_dialect;
+		u8 m_dialect;
 		u16 m_node_id;
 	};
 

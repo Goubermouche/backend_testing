@@ -1,5 +1,6 @@
 #pragma once
 #include "baremetal/intermediate_representation/dialect.h"
+#include "baremetal/context.h"
 
 namespace baremetal {
 	struct memory_block {
@@ -30,7 +31,7 @@ namespace baremetal {
 
 		MEMORY_BLOCK, // generic memory block allocated in the specified address space 
 		STORE,        // generic store operation
-		LOAD,          // generic load operation
+		LOAD,         // generic load operation
 
 		INTEGER_IMM
 	};
@@ -39,25 +40,24 @@ namespace baremetal {
 		u64 value;
 	};
 
-	class core_dialect : public dialect<core_dialect> {
+	class core_dialect : public dialect {
 	public:
-		auto get_label(u16 id) const -> std::string_view override;
+		[[nodiscard]] auto get_label(ptr<ir::node> node) const -> std::string_view override;
 
 		void create_function(const ir::function_data_type& data_type);
 
-		auto create_local(u8 alignment, u8 size) -> ptr<ir::node>;
-		auto create_signed_integer(i64 value, u8 bit_width) -> ptr<ir::node>;
+		[[nodiscard]] auto create_local(u8 alignment, u8 size) -> ptr<ir::node>;
+		[[nodiscard]] auto create_signed_integer(i64 value, u8 bit_width) -> ptr<ir::node>;
 
 		void create_store(ptr<ir::node> destination, ptr<ir::node> value, u8 alignment);
-		auto create_load(ptr<ir::node> source, ir::data_type type, u8 alignment) -> ptr<ir::node>;
+		[[nodiscard]] auto create_load(ptr<ir::node> source, ir::data_type type, u8 alignment) -> ptr<ir::node>;
 		void create_ret(const utility::memory<ptr<ir::node>, u8>& return_values);
 
-		auto create_projection(ir::data_type type, ptr<ir::node> source, u8 index) -> ptr<ir::node>;
+		[[nodiscard]] auto create_projection(ir::data_type type, ptr<ir::node> source, u8 index) -> ptr<ir::node>;
 
-		auto append_memory(ptr<ir::node> new_memory) const->ptr<ir::node>;
+		[[nodiscard]] auto append_memory(ptr<ir::node> new_memory) const->ptr<ir::node>;
 		void append_input(ptr<ir::node> target, ptr<ir::node> input);
-		static auto get_parent_region(ptr<ir::node> node) -> ptr<ir::node>;
-
+		[[nodiscard]] static auto get_parent_region(ptr<ir::node> node) -> ptr<ir::node>;
 
 		// TODO: temp id
 		// types

@@ -14,8 +14,8 @@ namespace baremetal {
 		return m_functions;
 	}
 
-	auto module_data::get_dialect(u64 id) const -> dialect_base* {
-		return m_dialect_pointers.at(id);
+	auto module_data::get_dialect(u64 index) const -> ptr<dialect_base> {
+		return m_dialects[index];
 	}
 
 	void module_data::allocate_function(const ir::function_data_type& data_type) {

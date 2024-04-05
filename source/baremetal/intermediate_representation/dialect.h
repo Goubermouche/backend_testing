@@ -1,32 +1,37 @@
 #pragma once
 #include "baremetal/intermediate_representation/module_data.h"
+
 #include <utility/typeid.h>
 
 namespace baremetal {
-
-
 	class dialect_base;
 
 	template<typename type>
 	concept derived_from_dialect_base = std::is_base_of_v<dialect_base, type>;
 
+	template<derived_from_dialect_base... dialects>
+	class module;
+
 	class dialect_base : virtual public module_data {
 	public:
-		virtual auto get_label(u16 id) const->std::string_view;
-		virtual auto get_color(u16 id) const->std::string_view;
-		virtual ~dialect_base() = default;
+		[[nodiscard]] virtual auto get_label(ptr<ir::node> node) const -> std::string_view;
+		[[nodiscard]] virtual auto get_color(ptr<ir::node> node) const -> std::string_view;
+	protected:
+		u8 m_index = 0; // unique index within the module::dialects array
+
+		template<derived_from_dialect_base... dialects>
+		friend class module;
 	};
 
-	template<typename dialect_type>
-	class dialect : public dialect_base{
+	class dialect : public dialect_base {
 	public:
 		dialect() = default;
 	protected:
 		template<typename node_data = std::monostate>
-		auto allocate_node(u16 nodeID, u8 input_count, ir::data_type dt) -> ptr<ir::node> {
-			std::cout << utility::get_type_id<dialect_type>() << '\n';
-
-			return m_functions.last()->allocate_node<node_data>({ utility::get_type_id<dialect_type>(), nodeID }, input_count, dt);
+		auto allocate_node(u16 node_id, u8 input_count, ir::data_type dt) -> ptr<ir::node> {
+			return m_functions.last()->allocate_node<node_data>(
+				{ m_index, node_id }, input_count, dt
+			);
 		}
 	};
 } // namespace baremetal

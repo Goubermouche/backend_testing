@@ -10,12 +10,12 @@ namespace baremetal {
 		module_data();
 		~module_data() override;
 
-		auto get_functions() const -> const utility::memory<ptr<ir::function>>&;
-		auto get_dialect(u64 id) const -> dialect_base*;
-	protected:
+		auto [[nodiscard]] get_functions() const -> const utility::memory<ptr<ir::function>>&;
+		auto [[nodiscard]] get_dialect(u64 index) const -> ptr<dialect_base>;
+	protected: 
 		void allocate_function(const ir::function_data_type& data_type);
-
+	protected:
 		utility::memory<ptr<ir::function>> m_functions;
-		std::unordered_map<u64, dialect_base*> m_dialect_pointers;
+		utility::memory<ptr<dialect_base>, u8> m_dialects;
 	};
 } // namespace baremetal

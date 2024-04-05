@@ -1,5 +1,6 @@
 #pragma once
 #include "baremetal/intermediate_representation/module_data.h"
+#include "baremetal/context.h"
 
 namespace baremetal {
 	struct pass {

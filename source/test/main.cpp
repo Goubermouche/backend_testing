@@ -13,15 +13,15 @@ using namespace utility::types;
 // register stuff can be generic?
 // timings
 // pointers instead of unique ids?
-// modification of already existing targets for certain dialects 
 
 auto main() -> int {
-	baremetal::module<baremetal::core_dialect, baremetal::gpu_dialect> module;
-
-	module.create_function({});
+	baremetal::context context;
+	baremetal::module<baremetal::core_dialect, baremetal::gpu_dialect> module(context);
 
 	{
 		using namespace baremetal;
+
+		module.create_function({});
 
 		const ptr<ir::node> local = module.create_local(4, 8);
 		const ptr<ir::node> imm = module.create_signed_integer(123, 32);
@@ -32,11 +32,11 @@ auto main() -> int {
 	}
 
 	baremetal::translation_engine engine;
-	baremetal::x64_target target;
+	baremetal::x64_target target(context);
 
 	std::ofstream ir_graph("./graph.dot");
 
-	engine.add_pass(managed_ptr<baremetal::ir_printer_pass>(module, ir_graph));
+	engine.add_pass(managed_ptr<baremetal::ir_printer_pass>(module, ir_graph, context));
 	engine.translate(target, module);
 
 	ir_graph.close();

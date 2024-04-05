@@ -357,7 +357,7 @@ namespace utility {
 		 * \return First element in the container
 		 */
 		[[nodiscard]] constexpr auto first() const -> const type& {
-			ASSERT(this->m_data != nullptr && this->m_size > 0, "first() used on an uninitialized container");
+			// ASSERT(this->m_data != nullptr && this->m_size > 0, "first() used on an uninitialized container");
 			return this->m_data[0];
 		}
 

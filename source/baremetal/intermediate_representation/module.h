@@ -1,5 +1,6 @@
 #pragma once
 #include "baremetal/intermediate_representation/dialect.h"
+#include "baremetal/context.h"
 
 namespace baremetal {
 	namespace detail {
@@ -20,10 +21,18 @@ namespace baremetal {
 	template<derived_from_dialect_base... dialects>
 	class module : public virtual module_data, public detail::dialect_list_derive<dialects...> {
 	public:
-		module() {
-			((m_dialect_pointers[utility::get_type_id<dialects>()] = static_cast<dialects*>(this)), ...);
+		module(context& context) {
+			m_dialects.resize(sizeof...(dialects));
+			(initialize_dialect<dialects>(context), ...);
 		}
+	private:
+		template<typename dialect_type>
+		void initialize_dialect(context& context) {
+			auto dialect_ptr = static_cast<dialect_type*>(this);
 
-		virtual ~module() = default;
+			const u8 index = context.get_dialect_index<dialect_type>();
+			m_dialects[index] = dialect_ptr;
+			dialect_ptr->m_index = index;
+		}
 	};
 } // namespace baremetal

@@ -1,24 +1,13 @@
 #include "x64_target.h"
 
+#include "baremetal/dialects/core_dialect.h"
+#include "baremetal/dialects/gpu_dialect.h"
 
 namespace baremetal {
-	void x64_target::select_instructions(const module_data& data) {
-		SUPPRESS_C4100(data);
-		 /*for(const node node : data.nodes) {
-		 	switch(node.id.m_dialect) {
-		 		case get_dialect_id<core_dialect>(): {
-		 			std::cout << "isel core\n";
-		 			break;
-		 		}
-		 		case get_dialect_id<affine_dialect>(): {
-		 			std::cout << "isel affine\n";
-		 			break;
-		 		}
-		 		default: {
-		 			std::cerr << "unsupported_dialect\n";
-		 			break;
-		 		}
-		 	}
-		 }*/
+	x64_target::x64_target(context& context) : target(context) {
+		m_isel_functions.resize(context.m_index_map.size());
+
+		m_isel_functions[context.get_dialect_index<core_dialect>()] = { isel_core };
+		m_isel_functions[context.get_dialect_index<gpu_dialect>()]  = { isel_gpu };
 	}
 } // namespace baremetal

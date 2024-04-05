@@ -4,12 +4,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <type_traits>
+#include <functional>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <fstream>
 #include <format>
 #include <bitset>
+#include <array>
 
 namespace utility {
 	namespace types {
