@@ -1,3 +1,7 @@
+// Each module contains a list of pointers to dialects inside of itself (the base dialects from
+// which the module derives). The index of a given dialect can be retrieved from the relevant 
+// context.
+
 #pragma once
 #include "baremetal/intermediate_representation/dialect.h"
 #include "baremetal/context.h"

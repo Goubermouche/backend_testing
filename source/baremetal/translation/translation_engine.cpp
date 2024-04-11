@@ -1,4 +1,5 @@
 #include "translation_engine.h"
+#include "baremetal/translation/mandatory_passes.h"
 
 namespace baremetal {
 	// void translation_engine::translate(core::target& target) {
@@ -32,6 +33,16 @@ namespace baremetal {
 			pass->apply(module);
 		}
 
-		target.select_instructions(module);
+		for(const ptr<ir::function> function : module.get_functions()) {
+			transformation_context function_context{
+				.function = function
+			};
+
+			// apply mandatory transformation passes
+			detail::generate_use_lists(function_context);
+			detail::schedule_function(function_context);
+		}
+
+		// target.select_instructions(module);
 	}
 } // namespace baremetal

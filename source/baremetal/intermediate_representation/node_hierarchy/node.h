@@ -42,14 +42,36 @@ namespace baremetal::ir {
 		u16 m_node_id;
 	};
 
+	class node;
+
+	struct user {
+		ptr<user> next;
+		ptr<node> node;
+		u8 slot;
+	};
+
 	class node {
 	public:
 		node(u64 global_value_index, node_id id, data_type dt);
 
 		void set_data(void* data);
+		void add_user(utility::block_allocator& allocator, ptr<node> input, u8 slot, ptr<user> recycled = nullptr);
+
+		[[nodiscard]] auto get_next_control_flow_user() const -> ptr<user>;
+		[[nodiscard]] auto get_predecessor(u8 index) const -> ptr<node>;
+		[[nodiscard]] auto get_basic_block_end() const -> ptr<node>;
+		[[nodiscard]] auto get_next_control(u8 slot) const -> ptr<node>;
+
+		[[nodiscard]] auto is_control_projection_node() const -> bool;
+		[[nodiscard]] auto is_control_flow_terminator() const -> bool;
+		[[nodiscard]] auto is_control_flow_endpoint() const -> bool;
+		[[nodiscard]] auto is_control_flow_control() const -> bool;
+		[[nodiscard]] auto is_block_start() const -> bool;
+		[[nodiscard]] auto is_pinned() const -> bool;
 
 		[[nodiscard]] auto get_global_value_index() const -> u64;
 		[[nodiscard]] auto get_data_type() const -> data_type;
+		[[nodiscard]] auto get_node_id() const -> u16;
 		[[nodiscard]] auto get_id() const -> node_id;
 
 		template<typename type>
@@ -58,10 +80,33 @@ namespace baremetal::ir {
 		}
 
 		utility::memory_view<ptr<node>, u8> inputs; // list of input nodes
+		ptr<user> users;
 	private:
 		u64 m_global_value_index;
 		node_id m_id;
 		data_type m_data_type;                      // data type of the underlying value
 		void* m_data;                               // optional additional data
+	};
+
+	struct block {
+		ptr<block> parent;
+		ptr<node> basic_block;
+		ptr<node> end;
+
+		u8 successor_index;
+		utility::memory_view<ptr<node>> successors;
+	};
+
+	class basic_block {
+	public:
+		ptr<basic_block> dominator;
+		i32 dominator_depth;
+		u64 id;
+
+		ptr<node> entry;
+		ptr<node> exit;
+
+		ptr<node> memory_input;
+		std::unordered_set<ptr<node>> items;
 	};
 } // namespace baremetal::ir

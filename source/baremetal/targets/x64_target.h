@@ -48,6 +48,4 @@ namespace baremetal {
 			m_isel_functions[node->get_id().get_dialect_id()].function(node);
 		}
 	};
-
-
 } // namespace baremetal

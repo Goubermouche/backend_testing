@@ -12,7 +12,7 @@ namespace baremetal::ir {
 		MEMORY,
 		TUPLE,
 
-		LAST
+		INTEGER,
 	};
 
 	class data_type {
@@ -38,6 +38,11 @@ namespace baremetal::ir {
 	static constexpr data_type CONTROL_TYPE = data_type(data_type_id::CONTROL, 0);
 	static constexpr data_type MEMORY_TYPE = data_type(data_type_id::MEMORY, 0);
 	static constexpr data_type TUPLE_TYPE = data_type(data_type_id::TUPLE, 0);
+
+	static constexpr data_type I8_TYPE  = data_type(data_type_id::INTEGER, 8);
+	static constexpr data_type I16_TYPE = data_type(data_type_id::INTEGER, 16);
+	static constexpr data_type I32_TYPE = data_type(data_type_id::INTEGER, 32);
+	static constexpr data_type I64_TYPE = data_type(data_type_id::INTEGER, 64);
 
 	struct function_data_type {
 		utility::memory_view<data_type, u8> parameter_types;

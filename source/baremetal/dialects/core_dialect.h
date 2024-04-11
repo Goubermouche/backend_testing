@@ -58,9 +58,5 @@ namespace baremetal {
 		[[nodiscard]] auto append_memory(ptr<ir::node> new_memory) const->ptr<ir::node>;
 		void append_input(ptr<ir::node> target, ptr<ir::node> input);
 		[[nodiscard]] static auto get_parent_region(ptr<ir::node> node) -> ptr<ir::node>;
-
-		// TODO: temp id
-		// types
-		static constexpr ir::data_type I32_TYPE = ir::data_type(100, 32);
 	};
 } // namespace baremetal
