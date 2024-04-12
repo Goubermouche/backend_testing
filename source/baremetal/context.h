@@ -17,7 +17,7 @@ namespace baremetal {
 			m_index_map[id] = size;
 			return size;
 		}
-
+		// dialect type id -> module index
 		std::unordered_map<u64, u8> m_index_map;
 	};
 } // namespace baremetal

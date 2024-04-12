@@ -55,7 +55,7 @@ namespace baremetal::detail {
 
 					if(
 						user->slot == 0 &&
-						(projection->get_node_id() == static_cast<u16>(core_node::PROJECTION) || projection->get_node_id() == static_cast<u16>(core_node::PHI))
+						(projection->get_node_id() == static_cast<u16>(core_node_id::PROJECTION) || projection->get_node_id() == static_cast<u16>(core_node_id::PHI))
 						) {
 						if(!context.schedule.contains(projection)) {
 							basic_block->items.insert(projection);
@@ -170,9 +170,9 @@ namespace baremetal::detail {
 
 			ptr<ir::basic_block> use_block = it->second;
 
-			if(user_node->get_node_id() == static_cast<u16>(core_node::PHI)) {
+			if(user_node->get_node_id() == static_cast<u16>(core_node_id::PHI)) {
 				const ptr<ir::node> use_node = user_node->inputs[0];
-				ASSERT(use_node->get_node_id() == static_cast<u16>(core_node::REGION), "unexpected node region PHI input");
+				ASSERT(use_node->get_node_id() == static_cast<u16>(core_node_id::REGION), "unexpected node region PHI input");
 
 				if(user_node->inputs.get_size() != use_node->inputs.get_size() + 1) {
 					PANIC("PHI has parent with mismatched predecessors");

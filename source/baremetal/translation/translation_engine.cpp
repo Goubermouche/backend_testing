@@ -1,5 +1,7 @@
 #include "translation_engine.h"
+
 #include "baremetal/translation/mandatory_passes.h"
+#include "baremetal/target.h"
 
 namespace baremetal {
 	// void translation_engine::translate(core::target& target) {
@@ -34,13 +36,26 @@ namespace baremetal {
 		}
 
 		for(const ptr<ir::function> function : module.get_functions()) {
-			transformation_context function_context{
+			transformation_context transformation{
 				.function = function
 			};
 
 			// apply mandatory transformation passes
-			detail::generate_use_lists(function_context);
-			detail::schedule_function(function_context);
+			detail::generate_use_lists(transformation);
+			detail::schedule_function(transformation);
+
+			machine_context machine {
+				.function = function,
+				.schedule = std::move(transformation.schedule),
+				.control_flow_graph = std::move(transformation.control_flow_graph),
+				.work_list = std::move(transformation.work_list)
+			};
+
+	//  target.initialize_intervals
+			target.select_instructions(machine);
+
+	//  detail::calculate_live_ranges
+	//  detail::calculate_intervals
 		}
 
 		// target.select_instructions(module);

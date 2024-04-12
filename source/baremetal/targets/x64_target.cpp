@@ -10,4 +10,20 @@ namespace baremetal {
 		m_isel_functions[context.get_dialect_index<core_dialect>()] = { isel_core };
 		m_isel_functions[context.get_dialect_index<gpu_dialect>()]  = { isel_gpu };
 	}
+
+	void x64_target::select_instructions(const machine_context& data) {
+		std::unordered_set<ptr<ir::node>> visited;
+
+		// for(u64 i = 0; i < data.get_functions().get_size(); ++i) {
+		// 	const ptr<ir::function> current = data.get_functions()[i];
+		// 
+		// 	for(const ptr<ir::node> exit : current->m_terminators) {
+		// 		visit_node(exit, visited);
+		// 	}
+		// 
+		// 	visited.clear();
+		// }
+
+
+	}
 } // namespace baremetal

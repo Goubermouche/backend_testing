@@ -6,8 +6,8 @@ namespace baremetal {
 	ir_printer_pass::ir_printer_pass(std::ostream& stream, context& context) : m_stream(stream), m_data(nullptr) {
 		const u8 core_index = context.get_dialect_index<core_dialect>();
 
-		m_projection_id = ir::node_id(core_index, static_cast<u16>(core_node::PROJECTION));
-		m_entry_id = ir::node_id(core_index, static_cast<u16>(core_node::ENTRY));
+		m_projection_id = ir::node_id(core_index, static_cast<u16>(core_node_id::PROJECTION));
+		m_entry_id = ir::node_id(core_index, static_cast<u16>(core_node_id::ENTRY));
 	}
 
 	void ir_printer_pass::apply(module_data& data) {

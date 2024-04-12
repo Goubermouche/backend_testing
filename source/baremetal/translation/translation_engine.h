@@ -1,6 +1,5 @@
 #pragma once
 #include "baremetal/translation/work_list.h"
-#include "baremetal/target.h"
 #include "baremetal/pass.h"
 
 #include <utility/memory/memory.h>
@@ -14,9 +13,20 @@ namespace baremetal {
 
 		// program structure
 		std::unordered_map<ptr<ir::node>, ptr<ir::basic_block>> schedule; // node -> parent basic block
-		control_flow_graph control_flow_graph;                          // entry node -> basic block
-		work_list work_list;                                            // generic node work list
+		control_flow_graph control_flow_graph;                            // entry node -> basic block
+		work_list work_list;                                              // generic node work list
 	};
+
+	struct machine_context {
+		ptr<ir::function> function;
+
+		// program structure
+		std::unordered_map<ptr<ir::node>, ptr<ir::basic_block>> schedule; // node -> parent basic block
+		control_flow_graph control_flow_graph;                            // entry node -> basic block
+		work_list work_list;                                              // generic node work list
+	};
+
+	class target;
 
 	class translation_engine {
 	public:

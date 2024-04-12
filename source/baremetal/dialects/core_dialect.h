@@ -20,7 +20,7 @@ namespace baremetal {
 		u8 index;
 	};
 
-	enum class core_node : u16 {
+	enum class core_node_id : u16 {
 		ENTRY,        // function entry node
 		EXIT,         // function exit node
 		REGION,
@@ -61,14 +61,16 @@ namespace baremetal {
 
 	namespace detail {
 		inline auto is_block_start(ptr<ir::node> node) -> bool {
-			return
-				node->get_node_id() == static_cast<u16>(core_node::REGION) ||
-				(node->get_node_id() == static_cast<u16>(core_node::PROJECTION) && node->inputs[0]->get_node_id() == static_cast<u16>(core_node::ENTRY));
+			constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
+			constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
+			constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
+
+			return node->get_id() == region_id || (node->get_id() == projection_id && node->inputs[0]->get_id() == entry_id);
 		}
 
 		inline auto is_control_flow_control(ptr<ir::node> node) -> bool {
 			if(node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTROL)) { return true; }
-			if(node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE)) { return false; }
+			if(node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE))   { return false; }
 
 			return false;
 		}
@@ -84,19 +86,17 @@ namespace baremetal {
 		}
 
 		inline auto get_predecessor(ptr<ir::node> node, u8 index) -> ptr<ir::node> {
+			constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
+			constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
+			constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
+
 			ptr<ir::node> predecessor = node->inputs[index];
 
-			if(
-				node->get_node_id() == static_cast<u16>(core_node::REGION) &&
-				predecessor->get_node_id() == static_cast<u16>(core_node::PROJECTION)
-				) {
+			if(node->get_id() == region_id && predecessor->get_id() == projection_id) {
 				const ptr<ir::node> parent = predecessor->inputs[0];
 
 				// ENTRY or projections with multiple users
-				if(
-					parent->get_node_id() == static_cast<u16>(core_node::ENTRY) ||
-					(!parent->is_control_projection_node() && predecessor->users->next != nullptr)
-					) {
+				if(parent->get_id() == entry_id || (!parent->is_control_projection_node() && predecessor->users->next != nullptr)) {
 					return predecessor;
 				}
 
@@ -121,10 +121,12 @@ namespace baremetal {
 		}
 
 		inline auto get_basic_block_end(ptr<ir::node> node) -> ptr<ir::node> {
+			constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
+
 			while(!node->is_control_flow_terminator()) {
 				ptr<ir::node> next = get_next_control(node, 0);
 
-				if(next == nullptr || next->get_node_id() == static_cast<u16>(core_node::REGION)) {
+				if(next == nullptr || next->get_id() == region_id) {
 					break;
 				}
 

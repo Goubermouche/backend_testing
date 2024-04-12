@@ -3,7 +3,6 @@
 #include <baremetal/passes/ir_printer_pass.h>
 #include <baremetal/targets/x64_target.h>
 
-#include <baremetal/dialects/core_dialect.h>
 #include <baremetal/dialects/gpu_dialect.h>
 
 using namespace utility::types;
@@ -16,7 +15,7 @@ using namespace utility::types;
 
 auto main() -> int {
 	baremetal::context context;
-	baremetal::module<baremetal::core_dialect, baremetal::gpu_dialect> module(context);
+	baremetal::module<baremetal::gpu_dialect> module(context);
 
 	{
 		using namespace baremetal;

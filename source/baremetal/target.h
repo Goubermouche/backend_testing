@@ -1,5 +1,5 @@
 #pragma once
-#include "baremetal/intermediate_representation/module_data.h"
+#include "baremetal/translation/translation_engine.h"
 #include "baremetal/context.h"
 
 namespace baremetal {
@@ -17,7 +17,7 @@ namespace baremetal {
 	public:
 		target(context& context);
 
-		virtual void select_instructions(const module_data& data) = 0;
+		virtual void select_instructions(const machine_context& data) = 0;
 
 		[[nodiscard]] auto get_context() const-> context&;
 	protected:

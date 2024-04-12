@@ -100,7 +100,7 @@ namespace baremetal {
 
 		while(true) {
 			const auto it = find(node);
-			if(it != end() || node->get_node_id() == static_cast<u16>(core_node::REGION)) {
+			if(it != end() || node->get_node_id() == static_cast<u16>(core_node_id::REGION)) {
 				return node;
 			}
 
