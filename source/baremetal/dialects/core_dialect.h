@@ -1,6 +1,5 @@
 #pragma once
 #include "baremetal/intermediate_representation/dialect.h"
-#include "baremetal/context.h"
 
 namespace baremetal {
 	struct memory_block {
@@ -59,4 +58,80 @@ namespace baremetal {
 		void append_input(ptr<ir::node> target, ptr<ir::node> input);
 		[[nodiscard]] static auto get_parent_region(ptr<ir::node> node) -> ptr<ir::node>;
 	};
+
+	namespace detail {
+		inline auto is_block_start(ptr<ir::node> node) -> bool {
+			return
+				node->get_node_id() == static_cast<u16>(core_node::REGION) ||
+				(node->get_node_id() == static_cast<u16>(core_node::PROJECTION) && node->inputs[0]->get_node_id() == static_cast<u16>(core_node::ENTRY));
+		}
+
+		inline auto is_control_flow_control(ptr<ir::node> node) -> bool {
+			if(node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTROL)) { return true; }
+			if(node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE)) { return false; }
+
+			return false;
+		}
+
+		inline auto get_next_control_flow_user(ptr<ir::node> node) -> ptr<ir::user> {
+			for(ptr<ir::user> u = node->users; u; u = u->next) {
+				if(is_control_flow_control(u->node)) {
+					return u;
+				}
+			}
+
+			return nullptr;
+		}
+
+		inline auto get_predecessor(ptr<ir::node> node, u8 index) -> ptr<ir::node> {
+			ptr<ir::node> predecessor = node->inputs[index];
+
+			if(
+				node->get_node_id() == static_cast<u16>(core_node::REGION) &&
+				predecessor->get_node_id() == static_cast<u16>(core_node::PROJECTION)
+				) {
+				const ptr<ir::node> parent = predecessor->inputs[0];
+
+				// ENTRY or projections with multiple users
+				if(
+					parent->get_node_id() == static_cast<u16>(core_node::ENTRY) ||
+					(!parent->is_control_projection_node() && predecessor->users->next != nullptr)
+					) {
+					return predecessor;
+				}
+
+				predecessor = parent;
+			}
+
+			while(!is_block_start(predecessor)) {
+				predecessor = predecessor->inputs[0];
+			}
+
+			return predecessor;
+		}
+
+		inline auto get_next_control(ptr<ir::node> node, u8 slot) -> ptr<ir::node> {
+			for(ptr<ir::user> u = node->users; u; u = u->next) {
+				if(u->slot == slot && is_control_flow_control(u->node)) {
+					return u->node;
+				}
+			}
+
+			return nullptr;
+		}
+
+		inline auto get_basic_block_end(ptr<ir::node> node) -> ptr<ir::node> {
+			while(!node->is_control_flow_terminator()) {
+				ptr<ir::node> next = get_next_control(node, 0);
+
+				if(next == nullptr || next->get_node_id() == static_cast<u16>(core_node::REGION)) {
+					break;
+				}
+
+				node = next;
+			}
+
+			return node;
+		}
+	} // namespace detail
 } // namespace baremetal

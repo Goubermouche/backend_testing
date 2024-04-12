@@ -1,4 +1,5 @@
 #include "mandatory_passes.h"
+#include "baremetal/dialects/core_dialect.h"
 
 namespace baremetal::detail {
 	void generate_use_lists(transformation_context& context) {

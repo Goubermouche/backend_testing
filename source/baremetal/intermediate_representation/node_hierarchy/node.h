@@ -50,6 +50,21 @@ namespace baremetal::ir {
 		u8 slot;
 	};
 
+	enum node_flags {
+		NONE                       = 0,
+
+		IS_PINNED                  = 1 << 0,
+		IS_ENDPOINT                = 1 << 1,
+		IS_CONTROL_FLOW_TERMINATOR = 1 << 2,
+		IS_CONTROL_PROJECTION      = 1 << 3,
+		IS_CONTROL_FLOW_ENDPOINT   = 1 << 4,
+	};
+
+	inline node_flags& operator|=(node_flags& a, node_flags b) {
+		a = static_cast<node_flags>(static_cast<int>(a) | static_cast<int>(b));
+		return a;
+	}
+
 	class node {
 	public:
 		node(u64 global_value_index, node_id id, data_type dt);
@@ -57,16 +72,9 @@ namespace baremetal::ir {
 		void set_data(void* data);
 		void add_user(utility::block_allocator& allocator, ptr<node> input, u8 slot, ptr<user> recycled = nullptr);
 
-		[[nodiscard]] auto get_next_control_flow_user() const -> ptr<user>;
-		[[nodiscard]] auto get_predecessor(u8 index) const -> ptr<node>;
-		[[nodiscard]] auto get_basic_block_end() const -> ptr<node>;
-		[[nodiscard]] auto get_next_control(u8 slot) const -> ptr<node>;
-
 		[[nodiscard]] auto is_control_projection_node() const -> bool;
 		[[nodiscard]] auto is_control_flow_terminator() const -> bool;
 		[[nodiscard]] auto is_control_flow_endpoint() const -> bool;
-		[[nodiscard]] auto is_control_flow_control() const -> bool;
-		[[nodiscard]] auto is_block_start() const -> bool;
 		[[nodiscard]] auto is_pinned() const -> bool;
 
 		[[nodiscard]] auto get_global_value_index() const -> u64;
@@ -81,6 +89,8 @@ namespace baremetal::ir {
 
 		utility::memory_view<ptr<node>, u8> inputs; // list of input nodes
 		ptr<user> users;
+
+		node_flags flags;
 	private:
 		u64 m_global_value_index;
 		node_id m_id;

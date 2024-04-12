@@ -1,6 +1,6 @@
 #pragma once
 #include "baremetal/intermediate_representation/module_data.h"
-#include "baremetal/dialects/core_dialect.h"
+#include "baremetal/context.h"
 
 namespace baremetal {
 	inline void default_isel(ptr<ir::node>) {

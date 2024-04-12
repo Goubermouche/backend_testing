@@ -123,7 +123,7 @@ namespace baremetal {
 	}
 
 	auto control_flow_graph::create_block(ptr<ir::node> basic_block) const -> ptr<ir::node> {
-		const ptr<ir::node> end = basic_block->get_basic_block_end();
+		const ptr<ir::node> end = detail::get_basic_block_end(basic_block);
 		u8 successor_count = 1;
 
 		if(end->is_control_flow_endpoint()) {
@@ -140,7 +140,7 @@ namespace baremetal {
 			// no successors
 		}
 		else {
-			top->successors[0] = end->get_next_control_flow_user()->node;
+			top->successors[0] = detail::get_next_control_flow_user(end)->node;
 		}
 
 		return top;

@@ -1,5 +1,7 @@
 #include "work_list.h"
 
+#include "baremetal/dialects/core_dialect.h"
+
 namespace baremetal {
 	void work_list::push_all(ptr<ir::function> function) {
 		memory stack;
@@ -48,7 +50,7 @@ namespace baremetal {
 				u8 j = 0;
 
 				for(; j < predecessor_count; j++) {
-					const ptr<ir::node> predecessor = block->get_predecessor(j);
+					const ptr<ir::node> predecessor = detail::get_predecessor(block, j);
 
 					if(cfg.get_immediate_dominator(predecessor) != nullptr) {
 						new_immediate_dominator = predecessor;
@@ -58,7 +60,7 @@ namespace baremetal {
 
 				// for all other predecessors, p, of b
 				for(; j < predecessor_count; j++) {
-					const ptr<ir::node> predecessor = block->get_predecessor(j);
+					const ptr<ir::node> predecessor = detail::get_predecessor(block, j);
 
 					// if the predecessor has a dominator
 					if(cfg.get_immediate_dominator(predecessor)) {

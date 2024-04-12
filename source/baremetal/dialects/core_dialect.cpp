@@ -25,6 +25,7 @@ namespace baremetal {
 		const	ptr<ir::function> function = m_functions.last();
 
 		function->m_entry_node = allocate_node<memory_region>(static_cast<u16>(core_node::ENTRY), 0, ir::TUPLE_TYPE);
+		function->m_entry_node->flags |= ir::IS_PINNED;
 
 		// fill in entry projections
 		function->m_active_control_node = create_projection(ir::CONTROL_TYPE, function->m_entry_node, 0);
@@ -96,21 +97,27 @@ namespace baremetal {
 
 		const ptr<ir::node> memory_state = get_parent_region(function->m_active_control_node)->get_data<memory_region>().output_memory;
 		const ptr<ir::node> region = allocate_node<memory_region>(static_cast<u16>(core_node::REGION), 0, ir::CONTROL_TYPE);
+		region->flags |= ir::IS_PINNED;
 
 		const ptr<ir::node> memory_phi = allocate_node(static_cast<u16>(core_node::PHI), 2, ir::MEMORY_TYPE);
 		memory_phi->inputs[0] = region;
 		memory_phi->inputs[1] = memory_state;
+		memory_phi->flags |= ir::IS_PINNED;
 
 		function->m_exit_node = allocate_node(static_cast<u16>(core_node::EXIT), 3 + return_values.get_size(), ir::CONTROL_TYPE);
 		function->m_exit_node->inputs[0] = region;
 		function->m_exit_node->inputs[1] = memory_phi;
 		function->m_exit_node->inputs[2] = function->m_parameters[2];
+		function->m_exit_node->flags |= ir::IS_PINNED;
+		function->m_exit_node->flags |= ir::IS_CONTROL_FLOW_TERMINATOR;
+		function->m_exit_node->flags |= ir::IS_CONTROL_FLOW_ENDPOINT;
 
 		// return values
 		for(u8 i = 0; i < return_values.get_size(); ++i) {
 			const ptr<ir::node> phi_node = allocate_node(static_cast<u16>(core_node::PHI), 2, return_values[i]->get_data_type());
 			phi_node->inputs[0] = region;
 			phi_node->inputs[1] = return_values[i];
+			phi_node->flags |= ir::IS_PINNED;
 
 			function->m_exit_node->inputs[3 + i] = phi_node;
 		}
@@ -132,6 +139,7 @@ namespace baremetal {
 
 		projection_node->get_data<projection>().index = index;
 		projection_node->inputs[0] = source;
+		projection_node->flags |= ir::IS_PINNED;
 
 		return projection_node;
 	}
