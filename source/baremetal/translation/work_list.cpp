@@ -7,7 +7,7 @@ namespace baremetal {
 		memory stack;
 
 		// collect all nodes, starting from the terminators
-		for(const ptr<ir::node> exit : function->m_terminators) {
+		for(const ptr<ir::node> exit : function->terminators) {
 			if(is_visited(exit)) {
 				// skip visited nodes
 				continue;

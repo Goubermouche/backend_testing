@@ -60,7 +60,7 @@ namespace baremetal {
 	};
 
 	namespace detail {
-		inline auto is_block_start(ptr<ir::node> node) -> bool {
+		[[nodiscard]] inline auto is_block_start(ptr<ir::node> node) -> bool {
 			constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
 			constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
 			constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
@@ -68,14 +68,14 @@ namespace baremetal {
 			return node->get_id() == region_id || (node->get_id() == projection_id && node->inputs[0]->get_id() == entry_id);
 		}
 
-		inline auto is_control_flow_control(ptr<ir::node> node) -> bool {
+		[[nodiscard]] inline auto is_control_flow_control(ptr<ir::node> node) -> bool {
 			if(node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTROL)) { return true; }
 			if(node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE))   { return false; }
 
 			return false;
 		}
 
-		inline auto get_next_control_flow_user(ptr<ir::node> node) -> ptr<ir::user> {
+		[[nodiscard]] inline auto get_next_control_flow_user(ptr<ir::node> node) -> ptr<ir::user> {
 			for(ptr<ir::user> u = node->users; u; u = u->next) {
 				if(is_control_flow_control(u->node)) {
 					return u;
@@ -85,7 +85,7 @@ namespace baremetal {
 			return nullptr;
 		}
 
-		inline auto get_predecessor(ptr<ir::node> node, u8 index) -> ptr<ir::node> {
+		[[nodiscard]] inline auto get_predecessor(ptr<ir::node> node, u8 index) -> ptr<ir::node> {
 			constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
 			constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
 			constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
@@ -110,7 +110,7 @@ namespace baremetal {
 			return predecessor;
 		}
 
-		inline auto get_next_control(ptr<ir::node> node, u8 slot) -> ptr<ir::node> {
+		[[nodiscard]] inline auto get_next_control(ptr<ir::node> node, u8 slot) -> ptr<ir::node> {
 			for(ptr<ir::user> u = node->users; u; u = u->next) {
 				if(u->slot == slot && is_control_flow_control(u->node)) {
 					return u->node;
@@ -120,7 +120,7 @@ namespace baremetal {
 			return nullptr;
 		}
 
-		inline auto get_basic_block_end(ptr<ir::node> node) -> ptr<ir::node> {
+		[[nodiscard]] inline auto get_basic_block_end(ptr<ir::node> node) -> ptr<ir::node> {
 			constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
 
 			while(!node->is_control_flow_terminator()) {

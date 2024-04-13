@@ -51,7 +51,7 @@ namespace baremetal {
 				.work_list = std::move(transformation.work_list)
 			};
 
-	//  target.initialize_intervals
+			target.initialize_intervals(machine);
 			target.select_instructions(machine);
 
 	//  detail::calculate_live_ranges

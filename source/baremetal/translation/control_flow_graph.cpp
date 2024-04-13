@@ -11,8 +11,8 @@ namespace baremetal {
 		control_flow_graph cfg(context.function);
 
 		// the entry node is the entry control node
-		ptr<ir::block> top = cfg.create_block(context.function->m_parameters[0]);
-		context.work_list.is_visited(context.function->m_parameters[0]);
+		ptr<ir::block> top = cfg.create_block(context.function->parameters[0]);
+		context.work_list.is_visited(context.function->parameters[0]);
 
 		// visit all blocks, until we return back to the top node (which doesn't have a parent)
 		while(top != nullptr) {

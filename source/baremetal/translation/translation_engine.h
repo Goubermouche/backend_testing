@@ -1,4 +1,5 @@
 #pragma once
+#include "baremetal/translation/live_interval.h"
 #include "baremetal/translation/work_list.h"
 #include "baremetal/pass.h"
 
@@ -24,6 +25,8 @@ namespace baremetal {
 		std::unordered_map<ptr<ir::node>, ptr<ir::basic_block>> schedule; // node -> parent basic block
 		control_flow_graph control_flow_graph;                            // entry node -> basic block
 		work_list work_list;                                              // generic node work list
+
+		std::vector<live_interval> intervals;
 	};
 
 	class target;

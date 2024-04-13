@@ -24,31 +24,31 @@ namespace baremetal {
 		const auto& parameters = data_type.parameter_types;
 		const	ptr<ir::function> function = m_functions.last();
 
-		function->m_entry_node = allocate_node<memory_region>(static_cast<u16>(core_node_id::ENTRY), 0, ir::TUPLE_TYPE);
-		function->m_entry_node->flags |= ir::IS_PINNED;
+		function->set_entry(allocate_node<memory_region>(static_cast<u16>(core_node_id::ENTRY), 0, ir::TUPLE_TYPE));
+		function->get_entry()->flags |= ir::IS_PINNED;
 
 		// fill in entry projections
-		function->m_active_control_node = create_projection(ir::CONTROL_TYPE, function->m_entry_node, 0);
-		function->m_parameters = utility::memory_view<ptr<ir::node>>(*this, 3 + parameters.get_size());
+		function->set_active_control(create_projection(ir::CONTROL_TYPE, function->get_entry(), 0));
+		function->parameters = utility::memory_view<ptr<ir::node>>(*this, 3 + parameters.get_size());
 
-		function->m_parameters[0] = function->m_active_control_node;
-		function->m_parameters[1] = create_projection(ir::MEMORY_TYPE, function->m_entry_node, 1);
-		function->m_parameters[2] = create_projection(ir::CONTINUATION_TYPE, function->m_entry_node, 2);
+		function->parameters[0] = function->get_active_control();
+		function->parameters[1] = create_projection(ir::MEMORY_TYPE, function->get_entry(), 1);
+		function->parameters[2] = create_projection(ir::CONTINUATION_TYPE, function->get_entry(), 2);
 
 		for(u8 i = 0; i < parameters.get_size(); ++i) {
-			function->m_parameters[3 + i] = create_projection(parameters[i], function->m_entry_node, 3 + i);
+			function->parameters[3 + i] = create_projection(parameters[i], function->get_entry(), 3 + i);
 		}
 
 		// initialize memory io
-		memory_region& region = function->m_entry_node->get_data<memory_region>();
-		region.output_memory = function->m_parameters[1];
-		region.input_memory = function->m_parameters[1];
+		memory_region& region = function->get_entry()->get_data<memory_region>();
+		region.output_memory = function->parameters[1];
+		region.input_memory = function->parameters[1];
 	}
 
 	auto core_dialect::create_local(u8 alignment, u8 size) -> ptr<ir::node> {
 		const auto memory_node = allocate_node<memory_block>(static_cast<u16>(core_node_id::MEMORY_BLOCK), 1, ir::data_type{});
 
-		memory_node->inputs[0] = m_functions.last()->m_entry_node;
+		memory_node->inputs[0] = m_functions.last()->get_entry();
 		// memory_node->flags |= node_flags::SHOULD_REMATERIALIZE;
 
 		memory_block& memory = memory_node->get_data<memory_block>();
@@ -71,7 +71,7 @@ namespace baremetal {
 	void core_dialect::create_store(ptr<ir::node> destination, ptr<ir::node> value, u8 alignment) {
 		const auto store_node = allocate_node<projection>(static_cast<u16>(core_node_id::STORE), 4, ir::MEMORY_TYPE);
 
-		store_node->inputs[0] = m_functions.last()->m_active_control_node;
+		store_node->inputs[0] = m_functions.last()->get_active_control();
 		store_node->inputs[1] = append_memory(store_node);
 		store_node->inputs[2] = destination;
 		store_node->inputs[3] = value;
@@ -82,8 +82,8 @@ namespace baremetal {
 	auto core_dialect::create_load(ptr<ir::node> source, ir::data_type type, u8 alignment) -> ptr<ir::node> {
 		const auto load_node = allocate_node<memory_access>(static_cast<u16>(core_node_id::LOAD), 3, type);
 
-		load_node->inputs[0] = m_functions.last()->m_active_control_node;
-		load_node->inputs[1] = get_parent_region(m_functions.last()->m_active_control_node)->get_data<memory_region>().output_memory;
+		load_node->inputs[0] = m_functions.last()->get_active_control();
+		load_node->inputs[1] = get_parent_region(m_functions.last()->get_active_control())->get_data<memory_region>().output_memory;
 		load_node->inputs[2] = source;
 
 		load_node->get_data<memory_access>().alignment = alignment;
@@ -93,9 +93,9 @@ namespace baremetal {
 	void core_dialect::create_ret(const utility::memory<ptr<ir::node>, u8>& return_values) {
 		const ptr<ir::function> function = m_functions.last();
 
-		ASSERT(function->m_exit_node == nullptr, "not implemented");
+		ASSERT(function->get_exit() == nullptr, "not implemented");
 
-		const ptr<ir::node> memory_state = get_parent_region(function->m_active_control_node)->get_data<memory_region>().output_memory;
+		const ptr<ir::node> memory_state = get_parent_region(function->get_active_control())->get_data<memory_region>().output_memory;
 		const ptr<ir::node> region = allocate_node<memory_region>(static_cast<u16>(core_node_id::REGION), 0, ir::CONTROL_TYPE);
 		region->flags |= ir::IS_PINNED;
 
@@ -104,13 +104,13 @@ namespace baremetal {
 		memory_phi->inputs[1] = memory_state;
 		memory_phi->flags |= ir::IS_PINNED;
 
-		function->m_exit_node = allocate_node(static_cast<u16>(core_node_id::EXIT), 3 + return_values.get_size(), ir::CONTROL_TYPE);
-		function->m_exit_node->inputs[0] = region;
-		function->m_exit_node->inputs[1] = memory_phi;
-		function->m_exit_node->inputs[2] = function->m_parameters[2];
-		function->m_exit_node->flags |= ir::IS_PINNED;
-		function->m_exit_node->flags |= ir::IS_CONTROL_FLOW_TERMINATOR;
-		function->m_exit_node->flags |= ir::IS_CONTROL_FLOW_ENDPOINT;
+		function->set_exit(allocate_node(static_cast<u16>(core_node_id::EXIT), 3 + return_values.get_size(), ir::CONTROL_TYPE));
+		function->get_exit()->inputs[0] = region;
+		function->get_exit()->inputs[1] = memory_phi;
+		function->get_exit()->inputs[2] = function->parameters[2];
+		function->get_exit()->flags |= ir::IS_PINNED;
+		function->get_exit()->flags |= ir::IS_CONTROL_FLOW_TERMINATOR;
+		function->get_exit()->flags |= ir::IS_CONTROL_FLOW_ENDPOINT;
 
 		// return values
 		for(u8 i = 0; i < return_values.get_size(); ++i) {
@@ -119,18 +119,18 @@ namespace baremetal {
 			phi_node->inputs[1] = return_values[i];
 			phi_node->flags |= ir::IS_PINNED;
 
-			function->m_exit_node->inputs[3 + i] = phi_node;
+			function->get_exit()->inputs[3 + i] = phi_node;
 		}
 
 		memory_region& memory = region->get_data<memory_region>();
 		memory.output_memory = memory_phi;
 		memory.input_memory = memory_phi;
 
-		function->m_terminators.push_back(function->m_exit_node);
+		function->terminators.push_back(function->get_exit());
 
-		const ptr<ir::node> control = function->m_exit_node->inputs[0];
-		append_input(control, function->m_active_control_node);
-		function->m_active_control_node = nullptr;
+		const ptr<ir::node> control = function->get_exit()->inputs[0];
+		append_input(control, function->get_active_control());
+		function->set_active_control(nullptr);
 	}
 
 	auto core_dialect::create_projection(ir::data_type type, ptr<ir::node> source, u8 index) -> ptr<ir::node> {
@@ -145,7 +145,7 @@ namespace baremetal {
 	}
 
 	auto core_dialect::append_memory(ptr<ir::node> new_memory) const -> ptr<ir::node> {
-		const auto basic_block = get_parent_region(m_functions.last()->m_active_control_node);
+		const auto basic_block = get_parent_region(m_functions.last()->get_active_control());
 		memory_region& region = basic_block->get_data<memory_region>();
 
 		const ptr<ir::node> old_memory = region.output_memory;

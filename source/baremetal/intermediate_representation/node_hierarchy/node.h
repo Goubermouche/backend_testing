@@ -28,7 +28,7 @@ namespace baremetal::ir {
 		constexpr node_id() : m_dialect(0), m_node_id(0) {}
 		constexpr node_id(u8 dialect, u16 id) : m_dialect(dialect), m_node_id(id) {}
 
-		auto operator==(const node_id& other) const -> bool;
+		[[nodiscard]] auto operator==(const node_id& other) const -> bool;
 
 		[[nodiscard]] constexpr auto get_dialect_id() const -> u8 {
 			return m_dialect;
@@ -89,7 +89,6 @@ namespace baremetal::ir {
 
 		utility::memory_view<ptr<node>, u8> inputs; // list of input nodes
 		ptr<user> users;
-
 		node_flags flags;
 	private:
 		u64 m_global_value_index;
@@ -107,8 +106,7 @@ namespace baremetal::ir {
 		utility::memory_view<ptr<node>> successors;
 	};
 
-	class basic_block {
-	public:
+	struct basic_block {
 		ptr<basic_block> dominator;
 		i32 dominator_depth;
 		u64 id;

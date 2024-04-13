@@ -8,7 +8,7 @@ namespace baremetal::detail {
 	// node scheduling
 	void schedule_function(transformation_context& context);
 
-	auto find_lca(ptr<ir::basic_block> a, ptr<ir::basic_block> b) -> ptr<ir::basic_block>;
+	[[nodiscard]] auto find_lca(ptr<ir::basic_block> a, ptr<ir::basic_block> b) -> ptr<ir::basic_block>;
 
 	void schedule_early(transformation_context& context, ptr<ir::node> target);
 	void schedule_late(transformation_context& context, ptr<ir::node> target);

@@ -1,10 +1,11 @@
 #pragma once
 #include "baremetal/translation/translation_engine.h"
+#include "baremetal/translation/reg.h"
 #include "baremetal/context.h"
 
 namespace baremetal {
 	inline void default_isel(ptr<ir::node>) {
-		std::cout << "unknown dialect\n";
+		utility::console::out("unknown dialect\n");
 	}
 
 	struct isel_function {
@@ -13,15 +14,28 @@ namespace baremetal {
 		func function = default_isel;
 	};
 
+	struct architecture {
+		// list of all available register for a given arch, ie.:
+		// GPR { RAX, RCX, RDX, RBX, RSI, ... }
+		// XMM { XMM0, XMM1, XMM2, XMM3, XMM4, ... }
+		std::vector<std::vector<reg>> registers;
+	};
+
 	class target {
 	public:
-		target(context& context);
+		target(context& context, const architecture& architecture);
+		virtual ~target() = default;
 
-		virtual void select_instructions(const machine_context& data) = 0;
+		void initialize_intervals(machine_context& context);
+		virtual void select_instructions(machine_context& context) = 0;
 
 		[[nodiscard]] auto get_context() const-> context&;
+	private:
+		void select_instruction(ptr<ir::node> node) const;
 	protected:
-		std::vector<isel_function> m_isel_functions;
 		context& m_context;
+		architecture m_architecture;
+
+		std::vector<isel_function> m_isel_functions;
 	};
 } // namespace baremetal

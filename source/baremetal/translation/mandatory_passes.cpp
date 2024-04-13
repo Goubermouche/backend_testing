@@ -40,7 +40,7 @@ namespace baremetal::detail {
 
 			if(i == 0) {
 				// schedule the ENTRY node
-				ptr<ir::node> entry = context.function->m_entry_node;
+				ptr<ir::node> entry = context.function->get_entry();
 				basic_block->items.insert(entry);
 				context.schedule[entry] = basic_block;
 			}

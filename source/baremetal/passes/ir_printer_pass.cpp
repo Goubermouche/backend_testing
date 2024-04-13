@@ -23,7 +23,7 @@ namespace baremetal {
 			m_stream << std::format("    label=\"Function {}\"\n", i + 1);
 
 			// begin from the exit nodes
-			for(const ptr<ir::node> exit : current->m_terminators) {
+			for(const ptr<ir::node> exit : current->terminators) {
 				emit_node_dot(exit);
 			}
 
