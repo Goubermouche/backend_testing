@@ -21,6 +21,9 @@ namespace baremetal::detail {
 	}
 
 	void schedule_function(transformation_context& context) {
+		constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
+		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
+
 		// generate graph dominators
 		context.control_flow_graph = control_flow_graph::create_reverse_post_order(context);
 		context.work_list.compute_dominators(context.control_flow_graph);
@@ -55,7 +58,7 @@ namespace baremetal::detail {
 
 					if(
 						user->slot == 0 &&
-						(projection->get_node_id() == static_cast<u16>(core_node_id::PROJECTION) || projection->get_node_id() == static_cast<u16>(core_node_id::PHI))
+						(projection->get_id() == projection_id || projection->get_id() == phi_id)
 						) {
 						if(!context.schedule.contains(projection)) {
 							basic_block->items.insert(projection);
@@ -151,6 +154,9 @@ namespace baremetal::detail {
 	}
 
 	void schedule_late(transformation_context& context, ptr<ir::node> target) {
+		constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
+		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
+
 		// pinned nodes can't be rescheduled 
 		if(target->is_pinned()) {
 			return;
@@ -170,9 +176,9 @@ namespace baremetal::detail {
 
 			ptr<ir::basic_block> use_block = it->second;
 
-			if(user_node->get_node_id() == static_cast<u16>(core_node_id::PHI)) {
+			if(user_node->get_id() == phi_id) {
 				const ptr<ir::node> use_node = user_node->inputs[0];
-				ASSERT(use_node->get_node_id() == static_cast<u16>(core_node_id::REGION), "unexpected node region PHI input");
+				ASSERT(use_node->get_id() == region_id, "unexpected node region PHI input");
 
 				if(user_node->inputs.get_size() != use_node->inputs.get_size() + 1) {
 					PANIC("PHI has parent with mismatched predecessors");

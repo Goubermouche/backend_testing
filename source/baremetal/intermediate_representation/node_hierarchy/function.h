@@ -31,6 +31,7 @@ namespace baremetal::ir {
 		[[nodiscard]] auto get_entry() const->ptr<node>;
 		[[nodiscard]] auto get_exit() const -> ptr<node>;
 		[[nodiscard]] auto get_active_control() const -> ptr<node>;
+		[[nodiscard]] auto get_node_count() const -> u64;
 
 		void set_entry(ptr<node> node);
 		void set_exit(ptr<node> node);

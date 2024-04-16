@@ -4,27 +4,16 @@
 #include "baremetal/target.h"
 
 namespace baremetal {
-	// void translation_engine::translate(core::target& target) {
-	// 	for(const managed_ptr<pass> pass : m_passes) {
-	// 		pass->apply(target);
-	//   }
-	// 
-	// 	core::codegen_context context {
-	// 		.function = target.get_current_function()
-	// 	};
-	// 
-	// 	generate_user_lists(context);
-	// 	schedule_ir_graph(context);
-	// 
-	// 	target.select_instructions(context);
-	// 
-	// 	// utility::binary_buffer stream;
-	// 	// 
-	// 	// stream.push_back("test");
-	// 	// stream.push_back(156);
-	// 	// 
-	// 	// return stream;
-	// }
+	void machine_context::append_instruction(ptr<instruction> instruction) {
+		if(first_instruction == nullptr) {
+			first_instruction = instruction;
+			current_instruction = instruction;
+		}
+		else {
+			current_instruction->next = instruction;
+			current_instruction = instruction;
+		}
+	}
 
 	void translation_engine::add_pass(managed_ptr<pass> pass) {
 		m_passes.push_back(pass);
@@ -53,6 +42,8 @@ namespace baremetal {
 
 			target.initialize_intervals(machine);
 			target.select_instructions(machine);
+
+
 
 	//  detail::calculate_live_ranges
 	//  detail::calculate_intervals

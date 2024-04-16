@@ -2,33 +2,33 @@ digraph {
   node [style=filled, fillcolor=white]
   subgraph cluster_func1{
     label="Function 1"
-    n1952262280977 [ordering=in, shape=record, tooltip="n11", label="{{<i0> 0|<i1> 1|<i2> 2|<i3> 3}|EXIT}"]
-    n1952262280832 -> n1952262280977:i0 [color=red, edgetooltip="n9 -> n11"];
-    n1952262280832 [ordering=in, shape=record, tooltip="n9", label="{{<i0> 0}|REGION}"]
-    n1952262280192:p0 -> n1952262280832:i0 [color=red, edgetooltip="PROJECTION n0 -> p1 -> n9"];
-    n1952262280904 -> n1952262280977:i1 [color=blue, edgetooltip="n10 -> n11"];
-    n1952262280904 [ordering=in, shape=record, tooltip="n10", label="{{<i0> 0|<i1> 1}|PHI}"]
-    n1952262280832 -> n1952262280904:i0 [color=red, edgetooltip="n9 -> n10"];
-    n1952262280662 -> n1952262280904:i1 [color=blue, edgetooltip="n7 -> n10"];
-    n1952262280662 [ordering=in, shape=record, tooltip="n7", label="{{<i0> 0|<i1> 1|<i2> 2|<i3> 3}|STORE}"]
-    n1952262280192:p0 -> n1952262280662:i0 [color=red, edgetooltip="PROJECTION n0 -> p1 -> n7"];
-    n1952262280192:p1 -> n1952262280662:i1 [color=blue, edgetooltip="PROJECTION n0 -> p2 -> n7"];
-    n1952262280459 -> n1952262280662:i2 [color=black, edgetooltip="n4 -> n7"];
-    n1952262280459 [ordering=in, shape=record, tooltip="n4", label="{{<i0> 0}|MEMORY_BLOCK}"]
-    n1952262280192 -> n1952262280459:i0 [color=black, edgetooltip="n0 -> n4"];
-    n1952262280192 [ordering=in, shape=record, tooltip="n0", label="{ENTRY|{<p0> ctrl|<p1> mem|<p2> cont}}"]
-    n1952262280597 -> n1952262280662:i3 [color=green, edgetooltip="n6 -> n7"];
-    n1952262280597 [ordering=in, shape=record, tooltip="n6", label="{{<i0> 0}|gpu test}"]
-    n1952262280525 -> n1952262280597:i0 [color=black, edgetooltip="n5 -> n6"];
-    n1952262280525 [ordering=in, shape=record, tooltip="n5", label="{{<i0> 0}|INT}"]
-    n1952262280192:p2 -> n1952262280977:i2 [color=purple, edgetooltip="PROJECTION n0 -> p3 -> n11"];
-    n1952262281066 -> n1952262280977:i3 [color=black, edgetooltip="n12 -> n11"];
-    n1952262281066 [ordering=in, shape=record, tooltip="n12", label="{{<i0> 0|<i1> 1}|PHI}"]
-    n1952262280832 -> n1952262281066:i0 [color=red, edgetooltip="n9 -> n12"];
-    n1952262280751 -> n1952262281066:i1 [color=black, edgetooltip="n8 -> n12"];
-    n1952262280751 [ordering=in, shape=record, tooltip="n8", label="{{<i0> 0|<i1> 1|<i2> 2}|LOAD}"]
-    n1952262280192:p0 -> n1952262280751:i0 [color=red, edgetooltip="PROJECTION n0 -> p1 -> n8"];
-    n1952262280662 -> n1952262280751:i1 [color=blue, edgetooltip="n7 -> n8"];
-    n1952262280459 -> n1952262280751:i2 [color=black, edgetooltip="n4 -> n8"];
+    n2640000865137 [ordering=in, shape=record, tooltip="n11", label="{{<i0> 0|<i1> 1|<i2> 2|<i3> 3}|exit}"]
+    n2640000864992 -> n2640000865137:i0 [color=red, edgetooltip="n9 -> n11"];
+    n2640000864992 [ordering=in, shape=record, tooltip="n9", label="{{<i0> 0}|region}"]
+    n2640000864352:p0 -> n2640000864992:i0 [weight=2., color=red, edgetooltip="PROJECTION n0 -> p1 -> n9"];
+    n2640000865064 -> n2640000865137:i1 [color=blue, edgetooltip="n10 -> n11"];
+    n2640000865064 [ordering=in, shape=record, tooltip="n10", label="{{<i0> 0|<i1> 1}|phi}"]
+    n2640000864992 -> n2640000865064:i0 [color=red, edgetooltip="n9 -> n10"];
+    n2640000864822 -> n2640000865064:i1 [color=blue, edgetooltip="n7 -> n10"];
+    n2640000864822 [ordering=in, shape=record, tooltip="n7", label="{{<i0> 0|<i1> 1|<i2> 2|<i3> 3}|store}"]
+    n2640000864352:p0 -> n2640000864822:i0 [weight=2., color=red, edgetooltip="PROJECTION n0 -> p1 -> n7"];
+    n2640000864352:p1 -> n2640000864822:i1 [weight=2., color=blue, edgetooltip="PROJECTION n0 -> p2 -> n7"];
+    n2640000864619 -> n2640000864822:i2 [color=black, edgetooltip="n4 -> n7"];
+    n2640000864619 [ordering=in, shape=record, tooltip="n4", label="{{<i0> 0}|memory block}"]
+    n2640000864352 -> n2640000864619:i0 [color=black, edgetooltip="n0 -> n4"];
+    n2640000864352 [ordering=in, shape=record, tooltip="n0", label="{entry|{<p0> ctrl|<p1> mem|<p2> cont}}"]
+    n2640000864757 -> n2640000864822:i3 [color=black, edgetooltip="n6 -> n7"];
+    n2640000864757 [ordering=in, shape=record, tooltip="n6", label="{{<i0> 0}|gpu test}"]
+    n2640000864685 -> n2640000864757:i0 [color=black, edgetooltip="n5 -> n6"];
+    n2640000864685 [ordering=in, shape=record, tooltip="n5", label="{{<i0> 0}|integer}"]
+    n2640000864352:p2 -> n2640000865137:i2 [weight=2., color=purple, edgetooltip="PROJECTION n0 -> p3 -> n11"];
+    n2640000865226 -> n2640000865137:i3 [color=black, edgetooltip="n12 -> n11"];
+    n2640000865226 [ordering=in, shape=record, tooltip="n12", label="{{<i0> 0|<i1> 1}|phi}"]
+    n2640000864992 -> n2640000865226:i0 [color=red, edgetooltip="n9 -> n12"];
+    n2640000864911 -> n2640000865226:i1 [color=black, edgetooltip="n8 -> n12"];
+    n2640000864911 [ordering=in, shape=record, tooltip="n8", label="{{<i0> 0|<i1> 1|<i2> 2}|load}"]
+    n2640000864352:p0 -> n2640000864911:i0 [weight=2., color=red, edgetooltip="PROJECTION n0 -> p1 -> n8"];
+    n2640000864822 -> n2640000864911:i1 [color=blue, edgetooltip="n7 -> n8"];
+    n2640000864619 -> n2640000864911:i2 [color=black, edgetooltip="n4 -> n8"];
   }
 }

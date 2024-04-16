@@ -2,7 +2,7 @@
 
 namespace baremetal {
 	target::target(context& context, const architecture& architecture)
-	: m_context(context), m_architecture(architecture){}
+	: m_compilation_context(context), m_architecture(architecture){}
 
 	void target::initialize_intervals(machine_context& context) {
 		u64 register_count = 0;
@@ -23,10 +23,16 @@ namespace baremetal {
 	}
 
 	auto target::get_context() const -> context& {
-		return m_context;
+		return m_compilation_context;
 	}
 
-	void target::select_instruction(ptr<ir::node> node) const {
+	void target::select_instruction(ptr<ir::node> node, reg reg) const {
 		m_isel_functions[node->get_id().get_dialect_id()].function(node);
+	}
+
+	assembler::assembler() : m_allocator(nullptr) {}
+
+	void assembler::set_allocator(utility::block_allocator& allocator) {
+		m_allocator = &allocator;
 	}
 } // namespace baremetal

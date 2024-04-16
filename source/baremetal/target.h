@@ -21,6 +21,20 @@ namespace baremetal {
 		std::vector<std::vector<reg>> registers;
 	};
 
+	class assembler {
+	public:
+		assembler();
+
+		void set_allocator(utility::block_allocator& allocator);
+	protected:
+		[[nodiscard]] auto allocate_instruction() const -> ptr<instruction> {
+			const auto inst = m_allocator->emplace<instruction>();
+			return inst;
+		}
+	protected:
+		utility::block_allocator* m_allocator;
+	};
+
 	class target {
 	public:
 		target(context& context, const architecture& architecture);
@@ -30,10 +44,10 @@ namespace baremetal {
 		virtual void select_instructions(machine_context& context) = 0;
 
 		[[nodiscard]] auto get_context() const-> context&;
-	private:
-		void select_instruction(ptr<ir::node> node) const;
 	protected:
-		context& m_context;
+		void select_instruction(ptr<ir::node> node, reg reg) const;
+	protected:
+		context& m_compilation_context;
 		architecture m_architecture;
 
 		std::vector<isel_function> m_isel_functions;

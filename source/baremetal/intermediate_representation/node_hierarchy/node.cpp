@@ -39,6 +39,10 @@ namespace baremetal::ir {
 		return flags & IS_CONTROL_FLOW_ENDPOINT;
 	}
 
+	auto node::is_memory_out_operator() const -> bool {
+		return m_data_type.get_id() == static_cast<u8>(data_type_id::MEMORY) || flags & IS_MEMORY_OUT_OPERATOR;
+	}
+
 	auto node::get_global_value_index() const -> u64 {
 		return m_global_value_index;
 	}

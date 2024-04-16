@@ -18,6 +18,10 @@ namespace baremetal::ir {
 		return m_active_control_node;
 	}
 
+	auto function::get_node_count() const -> u64 {
+		return m_node_count;
+	}
+
 	void function::set_entry(ptr<node> node) {
 		m_entry_node = node;
 	}

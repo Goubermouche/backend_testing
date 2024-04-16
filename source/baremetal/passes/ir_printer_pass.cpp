@@ -34,19 +34,17 @@ namespace baremetal {
 		m_stream << "}\n";
 	}
 
-	auto ir_printer_pass::determine_edge_color(ptr<ir::node> node) const -> std::string_view {
+	auto ir_printer_pass::determine_edge_color(ptr<ir::node> node) -> std::string_view {
 		switch(node->get_data_type().get_id()) {
 			case static_cast<u8>(ir::data_type_id::CONTROL):      return "red";
 			case static_cast<u8>(ir::data_type_id::MEMORY):       return "blue";
 			case static_cast<u8>(ir::data_type_id::CONTINUATION): return "purple";
-			default: {
-				return m_data->get_dialect(node->get_id().get_dialect_id())->get_color(node);
-			}
+			default:                                              return "black";
 		}
 	}
 
 	void ir_printer_pass::emit_node_dot(ptr<ir::node> current) {
-		constexpr std::string_view projection_edge_fmt = "    n{}:p{} -> n{}:i{} [color={}, edgetooltip=\"PROJECTION n{} -> p{} -> n{}\"];\n";
+		constexpr std::string_view projection_edge_fmt = "    n{}:p{} -> n{}:i{} [weight=2., color={}, edgetooltip=\"PROJECTION n{} -> p{} -> n{}\"];\n";
 		constexpr std::string_view edge_fmt = "    n{} -> n{}:i{} [color={}, edgetooltip=\"n{} -> n{}\"];\n";
 
 		constexpr std::string_view label_begin_fmt = "    n{} [ordering=in, shape=record, tooltip=\"n{}\", label=";

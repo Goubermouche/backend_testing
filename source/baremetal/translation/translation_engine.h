@@ -1,5 +1,6 @@
 #pragma once
 #include "baremetal/translation/live_interval.h"
+#include "baremetal/translation/instruction.h"
 #include "baremetal/translation/work_list.h"
 #include "baremetal/pass.h"
 
@@ -19,6 +20,8 @@ namespace baremetal {
 	};
 
 	struct machine_context {
+		void append_instruction(ptr<instruction> instruction);
+
 		ptr<ir::function> function;
 
 		// program structure
@@ -27,6 +30,17 @@ namespace baremetal {
 		work_list work_list;                                              // generic node work list
 
 		std::vector<live_interval> intervals;
+		std::vector<i32> basic_block_order;                    // map the indices of our work list items to the proper index of our basic blocks
+
+		// node memory/value representations
+		std::vector<virtual_value> values;                   // analysis of virtual values and their usage
+		std::vector<phi_value> phi_values;                   // conditionally described values
+
+		// instructions
+		ptr<instruction> current_instruction;
+		ptr<instruction> first_instruction;
+
+		i32 fallthrough_label;
 	};
 
 	class target;

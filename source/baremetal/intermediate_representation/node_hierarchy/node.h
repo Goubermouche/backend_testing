@@ -58,6 +58,7 @@ namespace baremetal::ir {
 		IS_CONTROL_FLOW_TERMINATOR = 1 << 2,
 		IS_CONTROL_PROJECTION      = 1 << 3,
 		IS_CONTROL_FLOW_ENDPOINT   = 1 << 4,
+		IS_MEMORY_OUT_OPERATOR     = 1 << 5
 	};
 
 	inline node_flags& operator|=(node_flags& a, node_flags b) {
@@ -75,6 +76,7 @@ namespace baremetal::ir {
 		[[nodiscard]] auto is_control_projection_node() const -> bool;
 		[[nodiscard]] auto is_control_flow_terminator() const -> bool;
 		[[nodiscard]] auto is_control_flow_endpoint() const -> bool;
+		[[nodiscard]] auto is_memory_out_operator() const -> bool;
 		[[nodiscard]] auto is_pinned() const -> bool;
 
 		[[nodiscard]] auto get_global_value_index() const -> u64;

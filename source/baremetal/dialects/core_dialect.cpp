@@ -3,17 +3,17 @@
 namespace baremetal {
 	auto core_dialect::get_label(ptr<ir::node> node) const -> std::string_view {
 		switch(node->get_id().get_node_id()) {
-			case static_cast<u16>(core_node_id::ENTRY):        return "ENTRY";
-			case static_cast<u16>(core_node_id::EXIT):         return "EXIT";
-			case static_cast<u16>(core_node_id::REGION):       return "REGION";
+			case static_cast<u16>(core_node_id::ENTRY):        return "entry";
+			case static_cast<u16>(core_node_id::EXIT):         return "exit";
+			case static_cast<u16>(core_node_id::REGION):       return "region";
 
-			case static_cast<u16>(core_node_id::PROJECTION):   return "PROJECTION";
-			case static_cast<u16>(core_node_id::PHI):          return "PHI";
+			case static_cast<u16>(core_node_id::PROJECTION):   return "projection";
+			case static_cast<u16>(core_node_id::PHI):          return "phi";
 
-			case static_cast<u16>(core_node_id::MEMORY_BLOCK): return "MEMORY_BLOCK";
-			case static_cast<u16>(core_node_id::STORE):        return "STORE";
-			case static_cast<u16>(core_node_id::LOAD):         return "LOAD";
-			case static_cast<u16>(core_node_id::INTEGER_IMM):  return "INT";
+			case static_cast<u16>(core_node_id::MEMORY_BLOCK): return "memory block";
+			case static_cast<u16>(core_node_id::STORE):        return "store";
+			case static_cast<u16>(core_node_id::LOAD):         return "load";
+			case static_cast<u16>(core_node_id::INTEGER_IMM):  return "integer";
 			default: return "UNKNOWN";
 		}
 	}
@@ -164,10 +164,10 @@ namespace baremetal {
 	}
 
 	auto core_dialect::get_parent_region(ptr<ir::node> node) -> ptr<ir::node> {
-		while(
-			node->get_id().get_node_id() != static_cast<u16>(core_node_id::REGION) &&
-			node->get_id().get_node_id() != static_cast<u16>(core_node_id::ENTRY)
-		) {
+		constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
+		constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
+
+		while(node->get_id() != region_id && node->get_id() != entry_id) {
 			node = node->inputs[0];
 		}
 

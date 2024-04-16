@@ -7,11 +7,14 @@
 
 using namespace utility::types;
 
-// TODO: flags
 // TODO: block documentation
+// TODO: 
 // register stuff can be generic?
 // timings
-// pointers instead of unique ids?
+// block printer
+// dumb ir printer
+// ir printer
+// block printer
 
 auto main() -> int {
 	baremetal::context context;

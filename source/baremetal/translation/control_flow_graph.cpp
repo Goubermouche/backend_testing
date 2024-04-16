@@ -96,11 +96,12 @@ namespace baremetal {
 	}
 
 	auto control_flow_graph::get_control_flow_predecessor(ptr<ir::node> target, u8 index) -> ptr<ir::node> {
+		constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
 		ptr<ir::node> node = target->inputs[index];
 
 		while(true) {
 			const auto it = find(node);
-			if(it != end() || node->get_node_id() == static_cast<u16>(core_node_id::REGION)) {
+			if(it != end() || node->get_id() == region_id) {
 				return node;
 			}
 

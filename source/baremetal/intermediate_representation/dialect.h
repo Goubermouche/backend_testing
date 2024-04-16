@@ -15,7 +15,6 @@ namespace baremetal {
 	class dialect_base : virtual public module_data {
 	public:
 		[[nodiscard]] virtual auto get_label(ptr<ir::node> node) const -> std::string_view;
-		[[nodiscard]] virtual auto get_color(ptr<ir::node> node) const -> std::string_view;
 	protected:
 		u8 m_index = 0; // unique index within the module::dialects array
 
