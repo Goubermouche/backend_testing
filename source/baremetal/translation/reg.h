@@ -23,6 +23,10 @@ namespace baremetal {
 		[[nodiscard]] constexpr auto operator==(reg other) const -> bool {
 			return m_class_index == other.get_class_index() && m_index == other.get_class_index();
 		}
+
+		[[nodiscard]] constexpr auto is_valid() const -> bool {
+			return m_class_index != invalid_class_index && m_index != invalid_index;
+		}
 	private:
 		u8 m_class_index;
 		u16 m_index;

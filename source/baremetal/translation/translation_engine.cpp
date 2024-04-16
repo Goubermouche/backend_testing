@@ -15,6 +15,14 @@ namespace baremetal {
 		}
 	}
 
+	auto machine_context::get_virtual_value(ptr<ir::node> node) -> ptr<virtual_value> {
+		if(work_list.visited.contains(node)) {
+			return &values[node->get_global_value_index()];
+		}
+
+		return nullptr;
+	}
+
 	void translation_engine::add_pass(managed_ptr<pass> pass) {
 		m_passes.push_back(pass);
 	}

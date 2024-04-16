@@ -2,20 +2,23 @@
 
 namespace baremetal {
 	live_interval::live_interval(const std::vector<utility::range<i32>>& ranges, reg reg)
-		: m_ranges(ranges), m_reg(reg) {}
+		: ranges(ranges), m_reg(reg) {}
+
+	live_interval::live_interval(const std::vector<utility::range<i32>>& ranges, ptr<ir::node> node)
+		: ranges(ranges), node(node) {}
 
 	void live_interval::add_range(i32 start, i32 end) {
 		ASSERT(start <= end, "invalid range");
-		ASSERT(!m_ranges.empty(), "empty ranges");
+		ASSERT(!ranges.empty(), "empty ranges");
 
-		if(m_ranges.back().start <= end) {
-			utility::range<i32>& top = m_ranges.back();
+		if(ranges.back().start <= end) {
+			utility::range<i32>& top = ranges.back();
 
 			top.start = std::min(top.start, start);
 			top.end = std::max(top.end, end);
 		}
 		else {
-			m_ranges.push_back({ start, end });
+			ranges.push_back({ start, end });
 		}
 	}
 } // namespace baremetal

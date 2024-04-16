@@ -60,7 +60,7 @@ namespace baremetal {
 
 	auto core_dialect::create_signed_integer(i64 value, u8 bit_width) -> ptr<ir::node> {
 		const auto immediate_node = allocate_node<integer_immediate>(static_cast<u16>(core_node_id::INTEGER_IMM), 1, ir::data_type(100, bit_width));
-		// immediate_node->flags |= ir::node_flags::SHOULD_REMATERIALIZE;
+		immediate_node->flags |= ir::node_flags::SHOULD_REMATERIALIZE;
 
 		integer_immediate& immediate = immediate_node->get_data<integer_immediate>();
 		immediate.value = value;

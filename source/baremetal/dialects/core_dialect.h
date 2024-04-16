@@ -120,6 +120,16 @@ namespace baremetal {
 			return nullptr;
 		}
 
+		[[nodiscard]] inline auto get_next_control(ptr<ir::node> node) -> ptr<ir::node> {
+			for(ptr<ir::user> u = node->users; u; u = u->next) {
+				if(is_control_flow_control(u->node)) {
+					return u->node;
+				}
+			}
+
+			return nullptr;
+		}
+
 		[[nodiscard]] inline auto get_basic_block_end(ptr<ir::node> node) -> ptr<ir::node> {
 			constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
 
@@ -134,6 +144,15 @@ namespace baremetal {
 			}
 
 			return node;
+		}
+
+		[[nodiscard]] inline auto should_rematerialize(ptr<ir::node> node) -> bool {
+			constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
+			constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
+
+			return
+				node->get_id() == projection_id && (node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTINUATION) || node->inputs[0]->get_id() == entry_id) ||
+				node->flags & ir::SHOULD_REMATERIALIZE;
 		}
 	} // namespace detail
 } // namespace baremetal

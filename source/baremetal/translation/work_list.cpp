@@ -112,4 +112,9 @@ namespace baremetal {
 	auto work_list::is_visited(ptr<ir::node> node) -> bool {
 		return !visited.insert(node).second;
 	}
+
+	void work_list::clear() {
+		base_type::clear();
+		visited.clear();
+	}
 } // namespace baremetal

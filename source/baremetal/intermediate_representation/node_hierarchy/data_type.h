@@ -44,6 +44,8 @@ namespace baremetal::ir {
 	static constexpr data_type I32_TYPE = data_type(data_type_id::INTEGER, 32);
 	static constexpr data_type I64_TYPE = data_type(data_type_id::INTEGER, 64);
 
+	static constexpr data_type VOID_TYPE = data_type(data_type_id::INTEGER, 0);
+
 	struct function_data_type {
 		utility::memory_view<data_type, u8> parameter_types;
 		utility::memory_view<data_type, u8> return_types;

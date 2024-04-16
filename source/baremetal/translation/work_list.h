@@ -12,6 +12,7 @@ namespace baremetal {
 		void compute_dominators(control_flow_graph& cfg);
 
 		auto is_visited(ptr<ir::node> node) -> bool;
+		void clear();
 
 		std::unordered_set<ptr<ir::node>> visited;
 	};

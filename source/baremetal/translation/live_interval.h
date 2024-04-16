@@ -9,14 +9,14 @@ namespace baremetal {
 	public:
 		live_interval() = default;
 		live_interval(const std::vector<utility::range<i32>>& ranges, reg reg);
+		live_interval(const std::vector<utility::range<i32>>& ranges, ptr<ir::node> node);
 
 		void add_range(i32 start, i32 end);
-	private:
-		std::vector<utility::range<i32>> m_ranges;
 
-		ptr<live_interval> m_base;
-		ptr<ir::node> m_node;
+		std::vector<utility::range<i32>> ranges;
+		ptr<ir::node> node;
 
+		ptr<live_interval> base;
 		reg m_reg;
 	};
 } // namespace baremetal

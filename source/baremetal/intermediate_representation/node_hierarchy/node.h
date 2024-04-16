@@ -58,7 +58,8 @@ namespace baremetal::ir {
 		IS_CONTROL_FLOW_TERMINATOR = 1 << 2,
 		IS_CONTROL_PROJECTION      = 1 << 3,
 		IS_CONTROL_FLOW_ENDPOINT   = 1 << 4,
-		IS_MEMORY_OUT_OPERATOR     = 1 << 5
+		IS_MEMORY_OUT_OPERATOR     = 1 << 5,
+		SHOULD_REMATERIALIZE       = 1 << 6
 	};
 
 	inline node_flags& operator|=(node_flags& a, node_flags b) {

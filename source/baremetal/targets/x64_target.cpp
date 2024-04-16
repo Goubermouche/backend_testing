@@ -29,7 +29,19 @@ namespace baremetal {
 			return inst;
 		}
 
+		auto assembler::create_jump(i32 successor) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			return inst;
+		}
+
 		auto assembler::create_move(ir::data_type dt, reg destination, reg source) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			return inst;
+		}
+
+		auto assembler::create_instruction(u16 instruction_id, ir::data_type data_type, u8 out, u8 in, u8 temp) const -> ptr<instruction> {
 			const ptr<instruction> inst = allocate_instruction();
 
 			return inst;
@@ -99,7 +111,7 @@ namespace baremetal {
 		}
 	}
 
-	void x64_target::select_instructions() const {
+	void x64_target::select_instructions() {
 		for(u64 i = 0; i < m_context->work_list.get_size(); ++i) {
 			const ptr<ir::node> basic_block = m_context->work_list[i];
 
@@ -229,7 +241,7 @@ namespace baremetal {
 		}
 	}
 
-	void x64_target::select_region_instructions(ptr<ir::node> block_entry, ptr<ir::node> block_exit, u64 index) const {
+	void x64_target::select_region_instructions(ptr<ir::node> block_entry, ptr<ir::node> block_exit, u64 index) {
 		constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
 		constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
 		constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
@@ -277,7 +289,7 @@ namespace baremetal {
 
 		for(u64 i = 0; i < our_phis; ++i) {
 			phi_value& value = phi_values[i];
-			// value.destination = get_virtual_register(value.phi);
+			value.destination = get_virtual_register(value.phi);
 		}
 
 		if(block_entry->get_id() == region_id) {
@@ -291,13 +303,13 @@ namespace baremetal {
 					// copy the PHI node into a temporary
 					phi_value phi = {
 						.phi = user->node,
-						// .destination = get_virtual_register(user->node)
+						.destination = get_virtual_register(user->node)
 					};
 
 					phi_values.push_back(phi);
 
 					const ir::data_type dt = phi.phi->get_data_type();
-					const reg temp = /*allocate_virtual_register(nullptr, dt);*/ {};
+					const reg temp = allocate_virtual_register(nullptr, dt);
 					m_context->append_instruction(m_assembler.create_move(dt, temp, phi.destination));
 
 					// assign temporary as the PHI until the end of the BB
@@ -322,49 +334,83 @@ namespace baremetal {
 				continue;
 			}
 
-			// const ptr<virtual_value> value = m_context->get_virtual_value(node);
-			// 
-			// if(node != block_exit && !value->virtual_register.is_valid() && node->should_rematerialize()) {
-			// 	continue;
-			// }
-			// 
-			// // attach to dummy list
-			// instruction dummy;
-			// dummy.next = nullptr;
-			// m_context->current_instruction = &dummy;
-			// 
-			// if(node->dt.kind == type_kind::TUPLE || node->dt.kind == type_kind::CONTROL || node->dt.kind == type_kind::MEMORY) {
-			// 	select_instruction(node, value->virtual_register);
-			// }
-			// else if(value->use_count > 0 || value->virtual_register.is_valid()) {
-			// 	if(!value->virtual_register.is_valid()) {
-			// 		value->virtual_register = allocate_virtual_register(node, node->dt);
-			// 	}
-			// 
-			// 	select_instruction(node, value->virtual_register);
-			// }
-			// else {
-			// 	// dead
-			// }
-			// 
-			// handle<instruction> sequence_start = dummy.next;
-			// const handle<instruction> sequence_end = m_context->current_instruction;
-			// ASSERT(sequence_end->next == nullptr, "invalid instruction detected");
-			// 
-			// if(sequence_start != nullptr) {
-			// 	if(last == nullptr) {
-			// 		last = sequence_end;
-			// 		current->next = dummy.next;
-			// 	}
-			// 	else {
-			// 		const handle<instruction> old_next = current->next;
-			// 		current->next = sequence_start;
-			// 		sequence_end->next = old_next;
-			// 	}
-			// }
+			const ptr<virtual_value> value = m_context->get_virtual_value(node);
+			
+			if(node != block_exit && !value->virtual_register.is_valid() && detail::should_rematerialize(node)) {
+				continue;
+			}
+			
+			// attach to dummy list
+			instruction dummy;
+			dummy.next = nullptr;
+			m_context->current_instruction = &dummy;
+			 
+			if(
+				node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE) || 
+				node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTROL) ||
+				node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::MEMORY)
+			) {
+				select_instruction(node, value->virtual_register);
+			}
+			else if(value->use_count > 0 || value->virtual_register.is_valid()) {
+				if(!value->virtual_register.is_valid()) {
+					value->virtual_register = allocate_virtual_register(node, node->get_data_type());
+				}
+			
+				select_instruction(node, value->virtual_register);
+			}
+			else {
+				// dead
+			}
+			
+			ptr<instruction> sequence_start = dummy.next;
+			const ptr<instruction> sequence_end = m_context->current_instruction;
+			ASSERT(sequence_end->next == nullptr, "invalid instruction detected");
+			
+			if(sequence_start != nullptr) {
+				if(last == nullptr) {
+					last = sequence_end;
+					current->next = dummy.next;
+				}
+				else {
+					const ptr<instruction> old_next = current->next;
+					current->next = sequence_start;
+					sequence_end->next = old_next;
+				}
+			}
 		}
 
+		// restore the PHI values to normal
+		for(u64 i = our_phis; i < phi_values.size(); ++i) {
+			const phi_value& value = phi_values[i];
+			m_context->get_virtual_value(value.phi)->virtual_register = value.destination;
+		}
 
+		m_context->current_instruction = last ? last : current;
+
+		if(!block_exit->is_control_flow_terminator()) {
+			// implicit goto
+			const ptr<ir::node> successor_node = detail::get_next_control(block_exit);
+			m_context->append_instruction(m_assembler.create_instruction(static_cast<u16>(x64::instruction_id::TERMINATOR), ir::VOID_TYPE, 0, 0, 0));
+
+			// write back PHIs
+			for(u64 i = 0; i < our_phis; ++i) {
+				const phi_value& value = phi_values[i];
+
+				const reg source = get_virtual_register(value.node);
+				const ir::data_type dt = value.phi->get_data_type();
+
+				// hint_register(value->destination, source);
+				m_context->append_instruction(m_assembler.create_move(dt, value.destination, source));
+			}
+
+			const i32 successor = static_cast<i32>(m_context->control_flow_graph.at(successor_node).id);
+
+			// if the successor isn't our fallthrough block we have to jump to it
+			if(m_context->fallthrough_label != successor) {
+				m_context->append_instruction(m_assembler.create_jump(successor));
+			}
+		}
 
 		// reset
 		phi_values.clear();
@@ -407,9 +453,43 @@ namespace baremetal {
 		}
 	}
 
+	auto x64_target::get_virtual_register(ptr<ir::node> node) -> reg {
+		const ptr<virtual_value> value = m_context->get_virtual_value(node);
+
+		if(value == nullptr) {
+			const reg temp = allocate_virtual_register(node, node->get_data_type());
+			select_instruction(node, temp);
+			return temp;
+		}
+
+		value->use_count--;
+
+		if(value->virtual_register.is_valid()) {
+			return value->virtual_register;
+		}
+
+		if(detail::should_rematerialize(node)) {
+			const reg temp = allocate_virtual_register(node, node->get_data_type());
+			select_instruction(node, temp);
+			return temp;
+		}
+
+		const reg i = allocate_virtual_register(node, node->get_data_type());
+		value->virtual_register = i;
+		return i;
+	}
+
+	auto x64_target::allocate_virtual_register(ptr<ir::node> node, ir::data_type data_type) const -> reg {
+		const u64 index = m_context->intervals.size();
+
+		m_context->intervals.emplace_back(std::vector{ utility::range<i32>::max() }, node);
+
+		ASSERT(index < reg::invalid_index, "invalid virtual register index");
+		return { x64::GPR, static_cast<u16>(index) };
+	}
+
 	auto x64_target::is_scheduled_in_block(ptr<ir::basic_block> block, ptr<ir::node> node) const -> bool {
 		const auto it = m_context->schedule.find(node);
 		return it != m_context->schedule.end() && it->second == block && !m_context->work_list.is_visited(node);
 	}
 } // namespace baremetal
-
