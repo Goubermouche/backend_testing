@@ -10,8 +10,8 @@ namespace baremetal {
 		module_data();
 		~module_data() override;
 
-		auto [[nodiscard]] get_functions() const -> const utility::memory<ptr<ir::function>>&;
-		auto [[nodiscard]] get_dialect(u64 index) const -> ptr<dialect_base>;
+		[[nodiscard]] auto get_functions() const -> const utility::memory<ptr<ir::function>>&;
+		[[nodiscard]] auto get_dialect(u64 index) const -> ptr<dialect_base>;
 	protected: 
 		void allocate_function(const ir::function_data_type& data_type);
 	protected:

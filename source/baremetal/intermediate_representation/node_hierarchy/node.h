@@ -46,7 +46,7 @@ namespace baremetal::ir {
 
 	struct user {
 		ptr<user> next;
-		ptr<node> node;
+		ptr<node> target;
 		u8 slot;
 	};
 

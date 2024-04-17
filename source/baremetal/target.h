@@ -4,12 +4,15 @@
 #include "baremetal/context.h"
 
 namespace baremetal {
-	inline void default_isel(ptr<ir::node>) {
+	inline void default_isel(ptr<ir::node> node, reg destination) {
+		SUPPRESS_C4100(node);
+		SUPPRESS_C4100(destination);
+		
 		utility::console::out("unknown dialect\n");
 	}
 
 	struct isel_function {
-		using func = std::function<void(ptr<ir::node>)>;
+		using func = std::function<void(ptr<ir::node>, reg)>;
 
 		func function = default_isel;
 	};

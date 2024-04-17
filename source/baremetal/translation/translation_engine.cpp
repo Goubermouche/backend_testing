@@ -16,7 +16,7 @@ namespace baremetal {
 	}
 
 	auto machine_context::get_virtual_value(ptr<ir::node> node) -> ptr<virtual_value> {
-		if(work_list.visited.contains(node)) {
+		if(work.visited.contains(node)) {
 			return &values[node->get_global_value_index()];
 		}
 
@@ -28,7 +28,7 @@ namespace baremetal {
 	}
 
 	void translation_engine::translate(target& target, module_data& module) {
-		for(const managed_ptr<pass> pass : m_passes) {
+		for(const managed_ptr<pass>& pass : m_passes) {
 			pass->apply(module);
 		}
 
@@ -44,8 +44,8 @@ namespace baremetal {
 			machine_context machine {
 				.function = function,
 				.schedule = std::move(transformation.schedule),
-				.control_flow_graph = std::move(transformation.control_flow_graph),
-				.work_list = std::move(transformation.work_list)
+				.cfg = std::move(transformation.cfg),
+				.work = std::move(transformation.work)
 			};
 
 			target.initialize_intervals(machine);

@@ -128,7 +128,7 @@ namespace utility {
 		memory(const memory& other)
 		: base_type(nullptr, other.m_size), m_capacity(other.m_capacity) {
 			this->m_data = static_cast<type*>(utility::malloc(m_capacity * sizeof(type)));
-			std::memcpy(this->m_data, other.m_data, m_capacity * sizeof(type));
+			memcpy(this->m_data, other.m_data, m_capacity * sizeof(type));
 		}
 
 		auto operator=(const memory& other) -> memory& {
@@ -139,7 +139,7 @@ namespace utility {
 			this->m_size = other.m_size;
 			m_capacity = other.m_capacity;
 			this->m_data = static_cast<type*>(utility::malloc(m_capacity * sizeof(type)));
-			std::memcpy(this->m_data, other.m_data, m_capacity * sizeof(type));
+			memcpy(this->m_data, other.m_data, m_capacity * sizeof(type));
 
 			return *this;
 		}
@@ -278,7 +278,7 @@ namespace utility {
 			// move existing elements to make space for new elements
 			if (this->m_size > insert_index) {
 				if constexpr (std::is_trivially_move_constructible_v<type> && std::is_trivially_destructible_v<type>) {
-					std::memmove(where + elements_to_insert, where, (this->m_size - insert_index) * sizeof(type));
+					memmove(where + elements_to_insert, where, (this->m_size - insert_index) * sizeof(type));
 				}
 				else {
 					for (size_type i = this->m_size; i > insert_index; --i) {

@@ -51,11 +51,15 @@ namespace baremetal {
 			TERMINATOR
 		};
 
-		inline void isel_core(ptr<ir::node>) {
+		inline void isel_core(ptr<ir::node> node, reg destination) {
+			SUPPRESS_C4100(node);
+			SUPPRESS_C4100(destination);
 			std::cout << "core\n";
 		}
 
-		inline void isel_gpu(ptr<ir::node>) {
+		inline void isel_gpu(ptr<ir::node> node, reg destination) {
+			SUPPRESS_C4100(node);
+			SUPPRESS_C4100(destination);
 			std::cout << "gpu\n";
 		}
 

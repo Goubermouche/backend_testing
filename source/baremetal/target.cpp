@@ -27,7 +27,7 @@ namespace baremetal {
 	}
 
 	void target::select_instruction(ptr<ir::node> node, reg reg) const {
-		m_isel_functions[node->get_id().get_dialect_id()].function(node);
+		m_isel_functions[node->get_id().get_dialect_id()].function(node, reg);
 	}
 
 	assembler::assembler() : m_allocator(nullptr) {}

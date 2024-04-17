@@ -24,24 +24,36 @@ namespace baremetal {
 		}
 
 		auto assembler::create_label(ptr<ir::node> node) const -> ptr<instruction> {
+			SUPPRESS_C4100(node);
 			const ptr<instruction> inst = allocate_instruction();
 
 			return inst;
 		}
 
 		auto assembler::create_jump(i32 successor) const -> ptr<instruction> {
+			SUPPRESS_C4100(successor);
 			const ptr<instruction> inst = allocate_instruction();
 
 			return inst;
 		}
 
 		auto assembler::create_move(ir::data_type dt, reg destination, reg source) const -> ptr<instruction> {
+			SUPPRESS_C4100(dt);
+			SUPPRESS_C4100(destination);
+			SUPPRESS_C4100(source);
+
 			const ptr<instruction> inst = allocate_instruction();
 
 			return inst;
 		}
 
 		auto assembler::create_instruction(u16 instruction_id, ir::data_type data_type, u8 out, u8 in, u8 temp) const -> ptr<instruction> {
+			SUPPRESS_C4100(instruction_id);
+			SUPPRESS_C4100(data_type);
+			SUPPRESS_C4100(out);
+			SUPPRESS_C4100(in);
+			SUPPRESS_C4100(temp);
+			
 			const ptr<instruction> inst = allocate_instruction();
 
 			return inst;
@@ -58,11 +70,11 @@ namespace baremetal {
 	
 	void x64_target::select_instructions(machine_context& context) {
 		ASSERT(
-			context.work_list.get_size() == context.control_flow_graph.get_size(),
+			context.work.get_size() == context.cfg.get_size(),
 			"basic block work list mismatch"
 		);
 
-		context.basic_block_order.reserve(context.control_flow_graph.get_size());
+		context.basic_block_order.reserve(context.cfg.get_size());
 		context.values.resize(context.function->get_node_count());
 
 		m_assembler.set_allocator(*context.function);
@@ -79,19 +91,20 @@ namespace baremetal {
 		i32 exit_basic_block = -1;
 
 		// define all PHIs early and sort the basic block order
-		for(i32 i = 0; i < static_cast<i32>(m_context->control_flow_graph.get_size()); ++i) {
-			const ptr<ir::node> basic_block = m_context->work_list[i];
-			const ptr<ir::node> exit = m_context->control_flow_graph.at(basic_block).exit;
+		for(i32 i = 0; i < static_cast<i32>(m_context->cfg.get_size()); ++i) {
+			const ptr<ir::node> basic_block = m_context->work[i];
+			const ptr<ir::node> exit = m_context->cfg.at(basic_block).exit;
 
 			for(ptr<ir::user> user = basic_block->users; user; user = user->next) {
-				const ptr<ir::node> node = user->node;
+				const ptr<ir::node> node = user->target;
 
 				if(
 					node->get_id() == phi_id &&
 					node->get_data_type().get_id() != static_cast<u8>(ir::data_type_id::MEMORY)
 				) {
-					m_context->work_list.is_visited(node); // mark the current node as visited
+					m_context->work.is_visited(node); // mark the current node as visited
 					m_context->values[node->get_global_value_index()] = {
+						.virtual_register = reg{},
 						.use_count = std::numeric_limits<i32>::max()
 					};
 				}
@@ -112,10 +125,10 @@ namespace baremetal {
 	}
 
 	void x64_target::select_instructions() {
-		for(u64 i = 0; i < m_context->work_list.get_size(); ++i) {
-			const ptr<ir::node> basic_block = m_context->work_list[i];
+		for(u64 i = 0; i < m_context->work.get_size(); ++i) {
+			const ptr<ir::node> basic_block = m_context->work[i];
 
-			if(i + 1 < m_context->work_list.get_size()) {
+			if(i + 1 < m_context->work.get_size()) {
 				m_context->fallthrough_label = m_context->basic_block_order[i + 1];
 			}
 			else {
@@ -127,7 +140,7 @@ namespace baremetal {
 			m_context->append_instruction(label);
 
 			// select instructions for the current block
-			const ptr<ir::node> block_exit = m_context->control_flow_graph.at(basic_block).exit;
+			const ptr<ir::node> block_exit = m_context->cfg.at(basic_block).exit;
 			select_region_instructions(basic_block, block_exit, i);
 		}
 	}
@@ -150,11 +163,11 @@ namespace baremetal {
 
 		phis.reserve(256);
 
-		if(successor && successor->node->get_id() == region_id) {
-			fill_phi_nodes(phis, successor->node, successor->slot);
+		if(successor && successor->target->get_id() == region_id) {
+			fill_phi_nodes(phis, successor->target, successor->slot);
 		}
 
-		m_context->work_list.is_visited(block_exit);
+		m_context->work.is_visited(block_exit);
 
 		while(top != nullptr) {
 			ptr<ir::node> current = top->node;
@@ -173,7 +186,7 @@ namespace baremetal {
 			// resolve anti dependencies
 			if(top->antis) {
 				const ptr<ir::user> next = top->antis->next;
-				const ptr<ir::node> anti = top->antis->node;
+				const ptr<ir::node> anti = top->antis->target;
 
 				if(anti != current && top->antis->slot == 1 && is_scheduled_in_block(block, anti)) {
 					top = create_scheduled_node(top, anti);
@@ -215,7 +228,7 @@ namespace baremetal {
 					auto it = block->items.begin();
 					std::advance(it, leftovers);
 
-					if(!m_context->work_list.is_visited(it->get())) {
+					if(!m_context->work.is_visited(it->get())) {
 						top = create_scheduled_node(top, it->get());
 					}
 
@@ -224,17 +237,17 @@ namespace baremetal {
 				}
 			}
 
-			m_context->work_list.push_back(current);
+			m_context->work.push_back(current);
 			top = top->parent;
 
 			// push outputs (projections, if they apply)
 			if(current->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE)) {
 				for(ptr<ir::user> user = current->users; user; user = user->next) {
 					if(
-						user->node->get_id() == projection_id && 
-						!m_context->work_list.is_visited(user->node)
+						user->target->get_id() == projection_id && 
+						!m_context->work.is_visited(user->target)
 					) {
-						m_context->work_list.push_back(user->node);
+						m_context->work.push_back(user->target);
 					}
 				}
 			}
@@ -247,7 +260,7 @@ namespace baremetal {
 		constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
 		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
 
-		ASSERT(m_context->work_list.get_size() == m_context->control_flow_graph.get_size(), "basic block work list mismatch");
+		ASSERT(m_context->work.get_size() == m_context->cfg.get_size(), "basic block work list mismatch");
 		const ptr<ir::basic_block> basic_block = m_context->schedule.at(block_entry);
 		std::vector<phi_value>& phi_values = m_context->phi_values;
 
@@ -256,24 +269,24 @@ namespace baremetal {
 
 		if(index == 0) {
 			for(ptr<ir::user> user = m_context->function->get_entry()->users; user; user = user->next) {
-				const ptr<ir::node> node = user->node;
+				const ptr<ir::node> node = user->target;
 
-				if(node->get_id() == projection_id && !m_context->work_list.is_visited(node)) {
+				if(node->get_id() == projection_id && !m_context->work.is_visited(node)) {
 					// function entry blocks & their projections should be selected as well
-					m_context->work_list.push_back(node);
+					m_context->work.push_back(node);
 				}
 			}
 		}
 
 		// define all nodes in this basic block
-		for(u64 i = m_context->control_flow_graph.get_size(); i < m_context->work_list.get_size(); ++i) {
-			const ptr<ir::node> node = m_context->work_list[i];
+		for(u64 i = m_context->cfg.get_size(); i < m_context->work.get_size(); ++i) {
+			const ptr<ir::node> node = m_context->work[i];
 
 			// track non-dead users
 			u64 use_count = 0;
 			for(ptr<ir::user> user = node->users; user; user = user->next) {
 				// user is scheduled == valid user
-				if(m_context->schedule.contains(user->node)) {
+				if(m_context->schedule.contains(user->target)) {
 					use_count++;
 				}
 			}
@@ -295,15 +308,17 @@ namespace baremetal {
 		if(block_entry->get_id() == region_id) {
 			for(ptr<ir::user> user = block_entry->users; user; user = user->next) {
 				if(
-					user->node->get_id() == phi_id &&
-					user->node->get_data_type().get_id() != static_cast<u8>(ir::data_type_id::MEMORY)
+					user->target->get_id() == phi_id &&
+					user->target->get_data_type().get_id() != static_cast<u8>(ir::data_type_id::MEMORY)
 				) {
-					const ptr<virtual_value> value = &m_context->values[user->node->get_global_value_index()];
+					const ptr<virtual_value> value = &m_context->values[user->target->get_global_value_index()];
 
 					// copy the PHI node into a temporary
 					phi_value phi = {
-						.phi = user->node,
-						.destination = get_virtual_register(user->node)
+						.phi = user->target,
+						.node = nullptr,
+						.destination = get_virtual_register(user->target),
+						.source = reg{}
 					};
 
 					phi_values.push_back(phi);
@@ -327,8 +342,8 @@ namespace baremetal {
 		const ptr<instruction> current = m_context->current_instruction;
 		ptr<instruction> last = nullptr;
 
-		for(u64 i = m_context->work_list.get_size(); i-- > m_context->control_flow_graph.get_size();) {
-			const ptr<ir::node> node = m_context->work_list[i];
+		for(u64 i = m_context->work.get_size(); i-- > m_context->cfg.get_size();) {
+			const ptr<ir::node> node = m_context->work[i];
 
 			if(node->get_id() == entry_id) {
 				continue;
@@ -404,7 +419,7 @@ namespace baremetal {
 				m_context->append_instruction(m_assembler.create_move(dt, value.destination, source));
 			}
 
-			const i32 successor = static_cast<i32>(m_context->control_flow_graph.at(successor_node).id);
+			const i32 successor = static_cast<i32>(m_context->cfg.at(successor_node).id);
 
 			// if the successor isn't our fallthrough block we have to jump to it
 			if(m_context->fallthrough_label != successor) {
@@ -414,7 +429,7 @@ namespace baremetal {
 
 		// reset
 		phi_values.clear();
-		m_context->work_list.set_size(m_context->control_flow_graph.get_size());
+		m_context->work.set_size(m_context->cfg.get_size());
 	}
 
 	auto x64_target::create_scheduled_node(ptr<scheduled_node> parent, ptr<ir::node> node) const -> ptr<scheduled_node> {
@@ -442,13 +457,13 @@ namespace baremetal {
 		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
 
 		for(ptr<ir::user> user = successor->users; user; user = user->next) {
-			if(user->node->get_id() != phi_id) {
+			if(user->target->get_id() != phi_id) {
 				continue;
 			}
 
 			phi_nodes.push_back({
-				.phi = user->node,
-				.node = user->node->inputs[1 + phi_index]
+				.phi = user->target,
+				.node = user->target->inputs[1 + phi_index]
 			});
 		}
 	}
@@ -480,8 +495,9 @@ namespace baremetal {
 	}
 
 	auto x64_target::allocate_virtual_register(ptr<ir::node> node, ir::data_type data_type) const -> reg {
-		const u64 index = m_context->intervals.size();
+		SUPPRESS_C4100(data_type);
 
+		const u64 index = m_context->intervals.size();
 		m_context->intervals.emplace_back(std::vector{ utility::range<i32>::max() }, node);
 
 		ASSERT(index < reg::invalid_index, "invalid virtual register index");
@@ -490,6 +506,6 @@ namespace baremetal {
 
 	auto x64_target::is_scheduled_in_block(ptr<ir::basic_block> block, ptr<ir::node> node) const -> bool {
 		const auto it = m_context->schedule.find(node);
-		return it != m_context->schedule.end() && it->second == block && !m_context->work_list.is_visited(node);
+		return it != m_context->schedule.end() && it->second == block && !m_context->work.is_visited(node);
 	}
 } // namespace baremetal
