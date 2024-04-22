@@ -1,7 +1,7 @@
 // contiguous_memory utility header
 
 #pragma once
-
+#include "../types.h"
 
 namespace utility {
 	template<typename type, typename size_type = u64>
@@ -75,6 +75,6 @@ namespace utility {
 	template<typename type, typename size_type = u64>
 	void copy(contiguous_memory<type, size_type>& destination, const contiguous_memory<type, size_type>& source) {
 		// ASSERT(destination.get_size() >= source.get_size(), "incompatible sizes");
-		std::memcpy(destination.get_data(), source.get_data(), source.get_size() * sizeof(type));
+		memcpy(destination.get_data(), source.get_data(), source.get_size() * sizeof(type));
 	}
 } // namespace utility

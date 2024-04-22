@@ -77,7 +77,7 @@ namespace baremetal {
 
 		[[nodiscard]] inline auto get_next_control_flow_user(ptr<ir::node> node) -> ptr<ir::user> {
 			for(ptr<ir::user> u = node->users; u; u = u->next) {
-				if(is_control_flow_control(u->node)) {
+				if(is_control_flow_control(u->target)) {
 					return u;
 				}
 			}
@@ -112,8 +112,8 @@ namespace baremetal {
 
 		[[nodiscard]] inline auto get_next_control(ptr<ir::node> node, u8 slot) -> ptr<ir::node> {
 			for(ptr<ir::user> u = node->users; u; u = u->next) {
-				if(u->slot == slot && is_control_flow_control(u->node)) {
-					return u->node;
+				if(u->slot == slot && is_control_flow_control(u->target)) {
+					return u->target;
 				}
 			}
 
@@ -122,8 +122,8 @@ namespace baremetal {
 
 		[[nodiscard]] inline auto get_next_control(ptr<ir::node> node) -> ptr<ir::node> {
 			for(ptr<ir::user> u = node->users; u; u = u->next) {
-				if(is_control_flow_control(u->node)) {
-					return u->node;
+				if(is_control_flow_control(u->target)) {
+					return u->target;
 				}
 			}
 
@@ -151,7 +151,7 @@ namespace baremetal {
 			constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
 
 			return
-				node->get_id() == projection_id && (node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTINUATION) || node->inputs[0]->get_id() == entry_id) ||
+				(node->get_id() == projection_id && (node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTINUATION) || node->inputs[0]->get_id() == entry_id)) ||
 				node->flags & ir::SHOULD_REMATERIALIZE;
 		}
 

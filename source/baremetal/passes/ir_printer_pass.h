@@ -8,7 +8,7 @@ namespace baremetal {
 
 		void apply(module_data& data) override;
 	private:
-		static [[nodiscard]] auto determine_edge_color(ptr<ir::node> node) -> std::string_view;
+		[[nodiscard]] static auto determine_edge_color(ptr<ir::node> node) -> std::string_view;
 		void emit_node_dot(ptr<ir::node> current);
 	private:
 		std::ostream& m_stream;

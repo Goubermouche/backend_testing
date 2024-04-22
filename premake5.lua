@@ -15,6 +15,9 @@ workspace "baremetal"
     -- linkoptions { "-fsanitize=address" }
     -- debugformat "C7"
 
+    filter "toolset:gcc or clang"
+        buildoptions { "-Wno-comment", "-Wno-missing-field-initializers" }
+
     filter "configurations:Release"
         defines { "NDEBUG" }
         optimize "On"

@@ -16,7 +16,7 @@ namespace baremetal::ir {
 		const auto new_user = recycled ? recycled : allocator.emplace<user>();
 
 		new_user->next = users;
-		new_user->node = input;
+		new_user->target = input;
 		new_user->slot = slot;
 
 		users = new_user;

@@ -3,12 +3,12 @@
 
 namespace baremetal::detail {
 	void generate_use_lists(transformation_context& context) {
-		ASSERT(context.work_list.is_empty(), "invalid work list");
+		ASSERT(context.work.is_empty(), "invalid work list");
 
 		// collect all nodes in the function
-		context.work_list.push_all(context.function);
+		context.work.push_all(context.function);
 
-		for(const ptr<ir::node> item : context.work_list) {
+		for(const ptr<ir::node> item : context.work) {
 			// mark the item as a user of all its input nodes
 			for(u8 slot = 0; slot < item->inputs.get_size(); ++slot) {
 				if(const ptr<ir::node> input = item->inputs[slot]) {
@@ -17,7 +17,7 @@ namespace baremetal::detail {
 			}
 		}
 
-		context.work_list.clear();
+		context.work.clear();
 	}
 
 	void schedule_function(transformation_context& context) {
@@ -25,20 +25,20 @@ namespace baremetal::detail {
 		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
 
 		// generate graph dominators
-		context.control_flow_graph = control_flow_graph::create_reverse_post_order(context);
-		context.work_list.compute_dominators(context.control_flow_graph);
-		context.work_list.visited.clear();
+		context.cfg = control_flow_graph::create_reverse_post_order(context);
+		context.work.compute_dominators(context.cfg);
+		context.work.visited.clear();
 		context.schedule.reserve(256);
 
-		for(u64 i = 0; i < context.control_flow_graph.get_size(); ++i) {
-			const auto best = &context.control_flow_graph.at(context.work_list[i]);
+		for(u64 i = 0; i < context.cfg.get_size(); ++i) {
+			const auto best = &context.cfg.at(context.work[i]);
 			best->items.reserve(32);
 		}
 
 		// pinned scheduling
-		for(u64 i = context.control_flow_graph.get_size(); i-- > 0;) {
-			const ptr<ir::node> basic_block_entry = context.work_list[i];
-			const ptr<ir::basic_block> basic_block = &context.control_flow_graph.at(basic_block_entry);
+		for(u64 i = context.cfg.get_size(); i-- > 0;) {
+			const ptr<ir::node> basic_block_entry = context.work[i];
+			const ptr<ir::basic_block> basic_block = &context.cfg.at(basic_block_entry);
 			ptr<ir::node> current = basic_block->exit;
 
 			if(i == 0) {
@@ -54,7 +54,7 @@ namespace baremetal::detail {
 
 				// projections should go into the same block
 				for(ptr<ir::user> user = current->users; user; user = user->next) {
-					const ptr<ir::node> projection = user->node; // potential projection
+					const ptr<ir::node> projection = user->target; // potential projection
 
 					if(
 						user->slot == 0 &&
@@ -76,17 +76,17 @@ namespace baremetal::detail {
 		}
 
 		// early schedule
-		for(u64 i = context.control_flow_graph.get_size(); i-- > 0;) {
-			schedule_early(context, context.control_flow_graph.at(context.work_list[i]).exit);
+		for(u64 i = context.cfg.get_size(); i-- > 0;) {
+			schedule_early(context, context.cfg.at(context.work[i]).exit);
 		}
 
 		// move nodes closer to their usage site
-		for(const ptr<ir::node> item : context.work_list) {
+		for(const ptr<ir::node> item : context.work) {
 			schedule_late(context, item);
 		}
 
-		context.work_list.set_size(context.control_flow_graph.get_size());
-		context.work_list.visited.clear();
+		context.work.set_size(context.cfg.get_size());
+		context.work.visited.clear();
 	}
 
 	auto find_lca(ptr<ir::basic_block> a, ptr<ir::basic_block> b) -> ptr<ir::basic_block> {
@@ -107,12 +107,12 @@ namespace baremetal::detail {
 	}
 
 	void schedule_early(transformation_context& context, ptr<ir::node> target) {
-		if(context.work_list.is_visited(target)) {
+		if(context.work.is_visited(target)) {
 			return;
 		}
 
 		// push our target, late scheduling will process this list
-		context.work_list.push_back(target);
+		context.work.push_back(target);
 
 		// schedule inputs first
 		for(const ptr<ir::node> input : target->inputs) {
@@ -127,7 +127,7 @@ namespace baremetal::detail {
 		}
 
 		// start at the entry node
-		ptr<ir::basic_block> best = context.schedule.at(context.work_list[0]);
+		ptr<ir::basic_block> best = context.schedule.at(context.work[0]);
 		i32 best_depth = 0;
 
 		// choose the deepest block
@@ -165,7 +165,7 @@ namespace baremetal::detail {
 		// locate the least common ancestor
 		ptr<ir::basic_block> lca = nullptr;
 		for(ptr<ir::user> user = target->users; user; user = user->next) {
-			ptr<ir::node> user_node = user->node;
+			ptr<ir::node> user_node = user->target;
 
 			auto it = context.schedule.find(user_node);
 

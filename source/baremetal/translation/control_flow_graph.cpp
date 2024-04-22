@@ -7,12 +7,12 @@ namespace baremetal {
 	control_flow_graph::control_flow_graph(ptr<ir::function> function) : m_function(function) {}
 
 	auto control_flow_graph::create_reverse_post_order(transformation_context& context) -> control_flow_graph {
-		ASSERT(context.work_list.is_empty(), "invalid work list");
+		ASSERT(context.work.is_empty(), "invalid work list");
 		control_flow_graph cfg(context.function);
 
 		// the entry node is the entry control node
 		ptr<ir::block> top = cfg.create_block(context.function->parameters[0]);
-		context.work_list.is_visited(context.function->parameters[0]);
+		context.work.is_visited(context.function->parameters[0]);
 
 		// visit all blocks, until we return back to the top node (which doesn't have a parent)
 		while(top != nullptr) {
@@ -20,7 +20,7 @@ namespace baremetal {
 				// push the next unvisited successor
 				const ptr<ir::node> successor = top->successors[--top->successor_index];
 
-				if(!context.work_list.is_visited(successor)) {
+				if(!context.work.is_visited(successor)) {
 					// create a new block from the current successor
 					const ptr<ir::block> new_top = cfg.create_block(successor);
 					new_top->parent = top;
@@ -38,7 +38,7 @@ namespace baremetal {
 					.exit = block.end
 				};
 
-				context.work_list.push_back(block.basic_block);
+				context.work.push_back(block.basic_block);
 				cfg[block.basic_block] = basic_block;
 
 				// off to wherever we left off
@@ -49,12 +49,12 @@ namespace baremetal {
 		// reverse our items
 		const u64 last = cfg.get_size() - 1;
 		for(u64 i = 0; i < cfg.get_size() / 2; ++i) {
-			std::swap(context.work_list[i], context.work_list[last - i]);
+			std::swap(context.work[i], context.work[last - i]);
 		}
 
 		// precompute some dominators and mark them with a unique ID
 		for(u64 i = 0; i < cfg.get_size(); ++i) {
-			const ptr basic_block = &cfg.at(context.work_list[i]);
+			const ptr basic_block = &cfg.at(context.work[i]);
 
 			if(i == 0) {
 				// the primary exit node has a dominator depth of 0
@@ -141,7 +141,7 @@ namespace baremetal {
 			// no successors
 		}
 		else {
-			top->successors[0] = detail::get_next_control_flow_user(end)->node;
+			top->successors[0] = detail::get_next_control_flow_user(end)->target;
 		}
 
 		return top;

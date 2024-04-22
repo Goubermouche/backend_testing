@@ -5,10 +5,13 @@
 #include <unordered_set>
 #include <type_traits>
 #include <functional>
+#include <stdint.h>
 #include <iostream>
+#include <utility>
 #include <iomanip>
 #include <sstream>
 #include <fstream>
+#include <cstring>
 #include <format>
 #include <bitset>
 #include <array>

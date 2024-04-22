@@ -15,8 +15,8 @@ namespace baremetal {
 
 		// program structure
 		std::unordered_map<ptr<ir::node>, ptr<ir::basic_block>> schedule; // node -> parent basic block
-		control_flow_graph control_flow_graph;                            // entry node -> basic block
-		work_list work_list;                                              // generic node work list
+		control_flow_graph cfg;                            // entry node -> basic block
+		work_list work;                                              // generic node work list
 	};
 
 	struct machine_context {
@@ -28,8 +28,8 @@ namespace baremetal {
 
 		// program structure
 		std::unordered_map<ptr<ir::node>, ptr<ir::basic_block>> schedule; // node -> parent basic block
-		control_flow_graph control_flow_graph;                            // entry node -> basic block
-		work_list work_list;                                              // generic node work list
+		control_flow_graph cfg;                            // entry node -> basic block
+		work_list work;                                              // generic node work list
 
 		std::vector<live_interval> intervals;
 		std::vector<i32> basic_block_order;                    // map the indices of our work list items to the proper index of our basic blocks
