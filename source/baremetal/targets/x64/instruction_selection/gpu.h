@@ -7,5 +7,5 @@ namespace baremetal {
 
 	namespace x64 {
 		void select_instruction_gpu(ptr<target> target, ptr<ir::node> node, reg destination);
-	} // x64
-} // baremetal
+	} //  namespace x64
+} // namespace baremetal

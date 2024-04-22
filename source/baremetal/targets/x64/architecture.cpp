@@ -20,4 +20,4 @@ namespace baremetal::x64 {
 
 		return arch;
 	}
-} // baremetal::x64
+} // namespace baremetal::x64

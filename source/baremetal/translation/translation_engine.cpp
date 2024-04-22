@@ -23,6 +23,12 @@ namespace baremetal {
 		return nullptr;
 	}
 
+	void machine_context::use_node(ptr<ir::node> node) {
+		if(const ptr<virtual_value> value = get_virtual_value(node)) {
+			value->use_count--;
+		}
+	}
+
 	void translation_engine::add_pass(managed_ptr<pass> pass) {
 		m_passes.push_back(pass);
 	}

@@ -13,6 +13,7 @@ namespace baremetal::ir {
 		TUPLE,
 
 		INTEGER,
+		POINTER,
 	};
 
 	class data_type {
@@ -26,6 +27,14 @@ namespace baremetal::ir {
 		}
 
 		[[nodiscard]] constexpr auto get_size() const -> u8 {
+			return m_size;
+		}
+
+		[[nodiscard]] constexpr auto get_bit_size() const -> u8 {
+			if(m_id == static_cast<u8>(data_type_id::POINTER)) {
+				return 64;
+			}
+
 			return m_size;
 		}
 	private:
@@ -43,6 +52,8 @@ namespace baremetal::ir {
 	static constexpr data_type I16_TYPE = data_type(data_type_id::INTEGER, 16);
 	static constexpr data_type I32_TYPE = data_type(data_type_id::INTEGER, 32);
 	static constexpr data_type I64_TYPE = data_type(data_type_id::INTEGER, 64);
+
+	static constexpr data_type PTR_TYPE = data_type(data_type_id::POINTER, 0);
 
 	static constexpr data_type VOID_TYPE = data_type(data_type_id::INTEGER, 0);
 

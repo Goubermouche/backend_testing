@@ -22,6 +22,7 @@ namespace baremetal {
 	struct machine_context {
 		void append_instruction(ptr<instruction> instruction);
 		auto get_virtual_value(ptr<ir::node> node) -> ptr<virtual_value>;
+		void use_node(ptr<ir::node> node);
 
 		ptr<ir::function> function;
 

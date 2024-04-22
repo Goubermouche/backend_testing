@@ -1,20 +1,24 @@
 #include "target.h"
 
 namespace baremetal {
-	target::target(context& context, const architecture& architecture)
-	: m_compilation_context(context), m_architecture(architecture){}
+	auto architecture::get_address_slot(u8 index, ptr<ir::node> node) -> i32 {
+		return address_spaces[index].get_slot(node);
+	}
 
-	void target::initialize_intervals(machine_context& context) {
+	target::target(context& context, const baremetal::architecture& architecture)
+	: architecture(architecture), m_compilation_context(context){}
+
+	void target::initialize_intervals(machine_context& context) const {
 		u64 register_count = 0;
 
-		for(const auto& registers : m_architecture.registers) {
+		for(const auto& registers : architecture.registers) {
 			register_count += registers.size();
 		}
 
 		context.intervals.reserve(register_count);
 
-		for(u64 i = 0; i < m_architecture.registers.size(); ++i) {
-			const auto& registers = m_architecture.registers[i];
+		for(u64 i = 0; i < architecture.registers.size(); ++i) {
+			const auto& registers = architecture.registers[i];
 
 			for(u64 j = 0; j < registers.size(); ++j) {
 				context.intervals.emplace_back(std::vector{ utility::range<i32>::max() }, registers[j]);
@@ -22,12 +26,8 @@ namespace baremetal {
 		}
 	}
 
-	auto target::get_context() const -> context& {
-		return m_compilation_context;
-	}
-
-	void target::select_instruction(ptr<ir::node> node, reg reg) const {
-		m_isel_functions[node->get_id().get_dialect_id()].function(node);
+	void target::select_instruction(ptr<ir::node> node, reg reg) {
+		m_isel_functions[node->get_id().get_dialect_id()].function(this, node, reg);
 	}
 
 	assembler::assembler() : m_allocator(nullptr) {}

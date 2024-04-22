@@ -61,4 +61,4 @@ namespace baremetal::x64 {
 	};
 
 	auto create_architecture() -> architecture;
-} // baremetal::x64
+} // namespace baremetal::x64

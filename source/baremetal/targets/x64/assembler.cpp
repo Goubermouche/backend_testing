@@ -56,4 +56,4 @@ namespace baremetal::x64 {
 
 		return inst;
 	}
-} // baremetal::x64
+} // namespace baremetal::x64

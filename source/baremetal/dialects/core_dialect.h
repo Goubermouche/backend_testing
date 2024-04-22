@@ -154,5 +154,28 @@ namespace baremetal {
 				node->get_id() == projection_id && (node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTINUATION) || node->inputs[0]->get_id() == entry_id) ||
 				node->flags & ir::SHOULD_REMATERIALIZE;
 		}
+
+		[[nodiscard]] inline auto contains_imm(ptr<ir::node> node, i32& out, u8 bit_count) -> bool {
+			constexpr ir::node_id integer_id(0, static_cast<u16>(core_node_id::INTEGER_IMM));
+
+			if(node->get_id() != integer_id) {
+				return false;
+			}
+
+			const integer_immediate& imm = node->get_data<integer_immediate>();
+
+			if(bit_count > 32) {
+				const bool sign = (imm.value >> 31ull) & 1;
+				const u64 top = imm.value >> 32ull;
+
+				// if the sign matches the rest of the top bits, we can sign extend just fine
+				if(top != (sign ? 0xFFFFFFFF : 0)) {
+					return false;
+				}
+			}
+
+			out = static_cast<i32>(imm.value);
+			return true;
+		}
 	} // namespace detail
 } // namespace baremetal
