@@ -1,0 +1,739 @@
+#include "x64_target.h"
+
+#include "baremetal/dialects/core_dialect.h"
+#include "baremetal/dialects/gpu_dialect.h"
+
+namespace baremetal {
+	namespace x64 {
+		void select_instruction_core(ptr<target> target, ptr<ir::node> node, reg destination) {
+			ptr<x64_target> x64_target = target;
+
+			switch(static_cast<core_node_id>(node->get_node_id())) {
+				case core_node_id::ENTRY:        select_instruction_core_entry(target, node); break;
+				case core_node_id::EXIT:         select_instruction_core_exit(target, node); break;
+				case core_node_id::REGION:       break;
+			
+				case core_node_id::PROJECTION:   select_instruction_core_projection(target, node, destination); break;
+				case core_node_id::PHI:          break;
+			
+				case core_node_id::MEMORY_BLOCK: select_instruction_core_memory_block(target, node, destination); break;
+				case core_node_id::STORE:        select_instruction_core_store(target, node, destination); break;
+				case core_node_id::LOAD:         select_instruction_core_load(target, node, destination); break;
+			
+				case core_node_id::INTEGER_IMM:  select_instruction_core_integer(target, node, destination); break;
+			
+				default: PANIC("unknown node core node '{}' referenced", static_cast<i32>(node->get_node_id()));
+			}
+		}
+
+		void select_instruction_core_entry(ptr<x64_target> target, ptr<ir::node> node) {
+			// constexpr reg return_registers[4] = { { GPR, RCX }, { GPR, RDX }, { GPR, R8 }, { GPR, R9 }, };
+			// const memory_region& entry = node->get_data<memory_region>();
+			const ptr<machine_context> context = target->get_context();
+			const ptr<instruction> previous = context->current_instruction;
+
+			const ptr<instruction> entry_inst = target->get_assembler().create_instruction(
+				static_cast<u16>(instruction_id::ENTRY), ir::I32_TYPE, 0, 0, 0
+			);
+
+			target->architecture.address_spaces[STACK].allocate(16, 8);
+			entry_inst->next = previous->next;
+
+			utility::console::out("core:entry\n");
+		}
+
+		void select_instruction_core_exit(ptr<x64_target> target, ptr<ir::node> node) {
+			ASSERT(node->inputs.get_size() <= 5, "at most 2 return values are allowed");
+
+			constexpr reg return_registers[2] = { { GPR, RAX }, { GPR, RDX } };
+			const ptr<machine_context> context = target->get_context();
+			const assembler& assembler = target->get_assembler();
+			const u8 returns = node->inputs.get_size() - 3;
+
+			for(u8 i = 0; i < returns; ++i) {
+				const reg source = target->get_virtual_register(node->inputs[3 + i]);
+				const ir::data_type dt = node->inputs[3 + i]->get_data_type();
+
+				// copy to the return register
+				context->append_instruction(assembler.create_move(dt, return_registers[i], source));
+			}
+
+			// we don't really need a fence if we're about to exit but we do need to mark that
+			// it's the epilogue to tell the register allocator where callee registers need to
+			// get restored
+			const ptr<instruction> instruction = assembler.create_instruction(
+				static_cast<u16>(instruction_id::EPILOGUE), ir::VOID_TYPE, 0, 0, 0
+			);
+
+			instruction->flags |= RETURN;
+			context->append_instruction(instruction);
+
+			utility::console::out("core:exit\n");
+		}
+
+		void select_instruction_core_projection(ptr<x64_target> target, ptr<ir::node> node, reg destination) {
+			const ptr<machine_context> context = target->get_context();
+			const assembler& assembler = target->get_assembler();
+
+			if(node->inputs[0]->get_node_id() == static_cast<u16>(core_node_id::ENTRY)) {
+				const i32 index = node->get_data<projection>().index - 3;
+				constexpr i32 param_gpr_count = 4;
+
+				// past the first register parameters, it's all stack
+				if(index >= param_gpr_count) {
+					constexpr auto id = instruction_id::MOV;
+					context->append_instruction(assembler.create_rm(id, node->get_data_type(), destination, reg{}, 0, 0));
+				}
+			}
+
+			utility::console::out("core:projection\n");
+		}
+
+		void select_instruction_core_memory_block(ptr<x64_target> target, ptr<ir::node> node, reg destination) {
+			target->get_context()->append_instruction(select_instruction_core_address(target, node, destination, instruction_id::NONE));
+			utility::console::out("core:memory_block\n");
+		}
+
+		void select_instruction_core_store(ptr<x64_target> target, ptr<ir::node> node, reg destination) {
+			if(destination.is_valid()) {
+				target->get_context()->use_node(node->inputs[2]);
+				target->get_context()->use_node(node->inputs[3]);
+				return;
+			}
+
+			const ptr<ir::node> destination_node = node->inputs[2];
+			const ptr<ir::node> source_node = node->inputs[3];
+
+			constexpr auto store_op = instruction_id::MOV;
+
+			const u8 bit_count = source_node->get_data_type().get_bit_size();
+			i32 immediate;
+
+			if(detail::contains_imm(source_node, immediate, bit_count)) {
+				target->get_context()->use_node(source_node);
+
+				const ptr<instruction> store_instruction = select_instruction_core_address(target, destination_node, destination, store_op);
+				// store_instruction->in_count -= 1;
+				// store_instruction->data_type = legalize_data_type(store_dt);
+				store_instruction->flags |= IMMEDIATE;
+				// store_instruction->imm = immediate;
+
+				ASSERT(store_instruction->flags & (MEMORY | GLOBAL), "invlaid store flags");
+				target->get_context()->append_instruction(store_instruction);
+			}
+			else {
+				const reg source_reg = target->get_virtual_register(source_node);
+
+				const ptr<instruction> store_instruction = select_instruction_core_address(target, destination_node, destination, store_op, source_reg);
+				// store_instruction->data_type = legalize_data_type(store_dt);
+
+				ASSERT(store_instruction->flags & (MEMORY | GLOBAL), "invlaid store flags");
+				target->get_context()->append_instruction(store_instruction);
+			}
+
+			utility::console::out("core:store\n");
+		}
+
+		void select_instruction_core_load(ptr<x64_target> target, ptr<ir::node> node, reg destination) {
+			constexpr auto mov_op = instruction_id::MOV;
+			const ptr<ir::node> source_node = node->inputs[2];
+
+			const ptr<instruction> load_inst = select_instruction_core_address(target, source_node, destination, instruction_id::NONE);
+			// load_inst->id = mov_op;
+			// load_inst->data_type = legalize_data_type(node->dt);
+
+			target->get_context()->append_instruction(load_inst);
+			utility::console::out("core:load\n");
+		}
+
+		void select_instruction_core_integer(ptr<x64_target> target, ptr<ir::node> node, reg destination) {
+			const integer_immediate& immediate = node->get_data<integer_immediate>();
+			u64 value = immediate.value;
+
+			// mask off bits
+			if(node->get_data_type().get_size() < 64) {
+				value &= (1ull << node->get_data_type().get_size()) - 1;
+			}
+
+			if(value == 0) {
+				ASSERT(false, "not impl");
+			}
+			else if((value >> 32ull) == UINT32_MAX) {
+				ASSERT(false, "not impl");
+			}
+			else if(node->get_data_type().get_size() <= 32 || (value >> 31ull) == 0) {
+				target->get_context()->append_instruction(target->get_assembler().create_imm(
+					instruction_id::MOV, ir::I32_TYPE, destination, static_cast<i32>(value)
+				));
+			}
+			else {
+				target->get_context()->append_instruction(target->get_assembler().create_abs(
+					instruction_id::MOVABS, node->get_data_type(), destination, value
+				));
+			}
+
+			utility::console::out("core:imm\n");
+		}
+
+		auto select_instruction_core_address(ptr<x64_target> target, ptr<ir::node> node, reg destination, instruction_id id, reg source) -> ptr<instruction> {
+			const bool has_second_input = id == instruction_id::NONE && source.is_valid();
+			constexpr i32 index = reg::invalid_index;
+			i32 offset = 0;
+			reg base;
+
+			if(node->get_node_id() == static_cast<u16>(core_node_id::MEMORY_BLOCK)) {
+				target->get_context()->use_node(node);
+				offset += target->architecture.get_address_slot(STACK, node);
+				base = reg(GPR, RBP);
+			}
+			else {
+				base = target->get_virtual_register(node);
+			}
+
+			// compute base
+			if(id == instruction_id::NONE) {
+				if(has_second_input) {
+					ASSERT(false, "not implemented");
+				}
+				else {
+					return target->get_assembler().create_rm(instruction_id::LEA, node->get_data_type(), destination, base, index, offset);
+				}
+			}
+
+			return target->get_assembler().create_mr(id, node->get_data_type(), base, index, offset, source);
+		}
+
+		void select_instruction_gpu(ptr<target> target, ptr<ir::node> node, reg destination) {
+			utility::console::out("gpu\n");
+		}
+
+		auto create_architecture() -> architecture {
+			architecture arch;
+
+			arch.address_spaces.resize(1);
+
+			arch.registers.resize(2);
+			arch.registers[GPR].resize(16);
+			arch.registers[XMM].resize(16);
+		 
+			for(u16 i = 0; i < 16; ++i) {
+				arch.registers[GPR][i] = { GPR, i };
+			}
+
+			for(u16 i = 0; i < 16; ++i) {
+				arch.registers[XMM][i] = { XMM, i };
+			}
+
+			return arch;
+		}
+
+		auto assembler::create_label(ptr<ir::node> node) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			return inst;
+		}
+
+		auto assembler::create_jump(i32 successor) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			return inst;
+		}
+
+		auto assembler::create_imm(instruction_id kind, ir::data_type dt, reg destination, i32 imm) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			inst->flags |= IMMEDIATE;
+
+			return inst;
+		}
+
+		auto assembler::create_abs(instruction_id kind, ir::data_type dt, reg destination, u64 imm) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			inst->flags |= ABSOLUTE;
+
+			return inst;
+		}
+
+		auto assembler::create_move(ir::data_type dt, reg destination, reg source) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			return inst;
+		}
+
+		auto assembler::create_rm(instruction_id id, ir::data_type dt, reg destination, reg base, i32 index, i32 displacement) const -> ptr<instruction> { 
+			const ptr<instruction> inst = allocate_instruction();
+
+			inst->flags = static_cast<instruction_flags>(MEMORY | (index != reg::invalid_index ? INDEXED : NONE));
+
+			return inst;
+		}
+
+		auto assembler::create_mr(instruction_id id, ir::data_type dt, reg base, i32 index, i32 displacement, reg source) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			inst->flags = static_cast<instruction_flags>(MEMORY | (index != reg::invalid_index ? INDEXED : NONE));
+
+			return inst;
+		}
+
+		auto assembler::create_instruction(u16 instruction_id, ir::data_type data_type, u8 out, u8 in, u8 temp) const -> ptr<instruction> {
+			const ptr<instruction> inst = allocate_instruction();
+
+			return inst;
+		}
+	} // namespace x64
+
+	x64_target::x64_target(context& context)
+	: target(context, x64::create_architecture()) {
+		m_isel_functions.resize(context.m_index_map.size());
+
+		m_isel_functions[context.get_dialect_index<core_dialect>()] = { x64::select_instruction_core };
+		m_isel_functions[context.get_dialect_index<gpu_dialect>()]  = { x64::select_instruction_gpu  };
+	}
+	
+	void x64_target::select_instructions(machine_context& context) {
+		ASSERT(
+			context.work_list.get_size() == context.control_flow_graph.get_size(),
+			"basic block work list mismatch"
+		);
+
+		context.basic_block_order.reserve(context.control_flow_graph.get_size());
+		context.values.resize(context.function->get_node_count());
+
+		m_assembler.set_allocator(*context.function);
+		m_context = &context;
+
+		define_basic_block_order();
+		select_instructions();
+	}
+
+	auto x64_target::get_context() const -> ptr<machine_context> {
+		return m_context;
+	}
+
+	auto x64_target::get_assembler() -> x64::assembler& {
+		return m_assembler;
+	}
+
+	void x64_target::define_basic_block_order() const {
+		constexpr ir::node_id exit_id(0, static_cast<u16>(core_node_id::EXIT));
+		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
+
+		i32 exit_basic_block = -1;
+
+		// define all PHIs early and sort the basic block order
+		for(i32 i = 0; i < static_cast<i32>(m_context->control_flow_graph.get_size()); ++i) {
+			const ptr<ir::node> basic_block = m_context->work_list[i];
+			const ptr<ir::node> exit = m_context->control_flow_graph.at(basic_block).exit;
+
+			for(ptr<ir::user> user = basic_block->users; user; user = user->next) {
+				const ptr<ir::node> node = user->node;
+
+				if(
+					node->get_id() == phi_id &&
+					node->get_data_type().get_id() != static_cast<u8>(ir::data_type_id::MEMORY)
+				) {
+					m_context->work_list.is_visited(node); // mark the current node as visited
+					m_context->values[node->get_global_value_index()] = {
+						.use_count = std::numeric_limits<i32>::max()
+					};
+				}
+			}
+
+			if(exit->get_id() == exit_id) {
+				exit_basic_block = i;
+			}
+			else {
+				m_context->basic_block_order.push_back(i);
+			}
+		}
+
+		// the exit block should be the last one we visit
+		if(exit_basic_block >= 0) {
+			m_context->basic_block_order.push_back(exit_basic_block);
+		}
+	}
+
+	void x64_target::select_instructions() {
+		for(u64 i = 0; i < m_context->work_list.get_size(); ++i) {
+			const ptr<ir::node> basic_block = m_context->work_list[i];
+
+			if(i + 1 < m_context->work_list.get_size()) {
+				m_context->fallthrough_label = m_context->basic_block_order[i + 1];
+			}
+			else {
+				m_context->fallthrough_label = std::numeric_limits<i32>::max();
+			}
+
+			// create the block label and append it to the instruction list
+			const ptr<instruction> label = m_assembler.create_label(basic_block);
+			m_context->append_instruction(label);
+
+			// select instructions for the current block
+			const ptr<ir::node> block_exit = m_context->control_flow_graph.at(basic_block).exit;
+			select_region_instructions(basic_block, block_exit, i);
+		}
+	}
+
+	void x64_target::greedy_schedule(ptr<ir::basic_block> block, ptr<ir::node> block_exit) const {
+		constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
+		constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
+		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
+
+		const ptr<ir::user> successor = detail::get_next_control_flow_user(block_exit);
+		ptr<scheduled_node> top = create_scheduled_node(nullptr, block_exit);
+
+		// phis
+		std::vector<scheduled_phi> phis;
+		u64 current_phi = 0;
+
+		// leftovers
+		const u64 leftover_count = block->items.size();
+		u64 leftovers = 0;
+
+		phis.reserve(256);
+
+		if(successor && successor->node->get_id() == region_id) {
+			fill_phi_nodes(phis, successor->node, successor->slot);
+		}
+
+		m_context->work_list.is_visited(block_exit);
+
+		while(top != nullptr) {
+			ptr<ir::node> current = top->node;
+
+			// resolve inputs first
+			if(current->get_id() != phi_id && top->index < current->inputs.get_size()) {
+				const ptr<ir::node> input = current->inputs[top->index++];
+
+				if(input != nullptr && is_scheduled_in_block(block, input)) {
+					top = create_scheduled_node(top, input);
+				}
+
+				continue;
+			}
+
+			// resolve anti dependencies
+			if(top->antis) {
+				const ptr<ir::user> next = top->antis->next;
+				const ptr<ir::node> anti = top->antis->node;
+
+				if(anti != current && top->antis->slot == 1 && is_scheduled_in_block(block, anti)) {
+					top = create_scheduled_node(top, anti);
+				}
+
+				top->antis = next;
+				continue;
+			}
+
+			// resolve phi edges & leftovers when we're at the endpoint
+			if(block_exit == current) {
+				// skip non-phis
+				if(current_phi < phis.size()) {
+					const ptr<ir::node> phi = phis[current_phi].phi;
+					const ptr<ir::node> val = phis[current_phi].node;
+
+					current_phi++;
+
+					// reserve PHI space
+					if(val->get_data_type().get_id() != static_cast<u8>(ir::data_type_id::MEMORY)) {
+						phi_value p{
+							.phi = phi,
+							.node = val,
+							.destination = {},
+							.source = {}
+						};
+
+						m_context->phi_values.push_back(p);
+					}
+
+					if(is_scheduled_in_block(block, val)) {
+						top = create_scheduled_node(top, val);
+					}
+					continue;
+				}
+
+				// resolve leftover nodes placed here by GCM
+				if(leftovers < leftover_count) {
+					auto it = block->items.begin();
+					std::advance(it, leftovers);
+
+					if(!m_context->work_list.is_visited(it->get())) {
+						top = create_scheduled_node(top, it->get());
+					}
+
+					leftovers++;
+					continue;
+				}
+			}
+
+			m_context->work_list.push_back(current);
+			top = top->parent;
+
+			// push outputs (projections, if they apply)
+			if(current->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE)) {
+				for(ptr<ir::user> user = current->users; user; user = user->next) {
+					if(
+						user->node->get_id() == projection_id && 
+						!m_context->work_list.is_visited(user->node)
+					) {
+						m_context->work_list.push_back(user->node);
+					}
+				}
+			}
+		}
+	}
+
+	void x64_target::select_region_instructions(ptr<ir::node> block_entry, ptr<ir::node> block_exit, u64 index) {
+		constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
+		constexpr ir::node_id region_id(0, static_cast<u16>(core_node_id::REGION));
+		constexpr ir::node_id entry_id(0, static_cast<u16>(core_node_id::ENTRY));
+		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
+
+		ASSERT(m_context->work_list.get_size() == m_context->control_flow_graph.get_size(), "basic block work list mismatch");
+		const ptr<ir::basic_block> basic_block = m_context->schedule.at(block_entry);
+		std::vector<phi_value>& phi_values = m_context->phi_values;
+
+		// topological sort
+		greedy_schedule(basic_block, block_exit);
+
+		if(index == 0) {
+			for(ptr<ir::user> user = m_context->function->get_entry()->users; user; user = user->next) {
+				const ptr<ir::node> node = user->node;
+
+				if(node->get_id() == projection_id && !m_context->work_list.is_visited(node)) {
+					// function entry blocks & their projections should be selected as well
+					m_context->work_list.push_back(node);
+				}
+			}
+		}
+
+		// define all nodes in this basic block
+		for(u64 i = m_context->control_flow_graph.get_size(); i < m_context->work_list.get_size(); ++i) {
+			const ptr<ir::node> node = m_context->work_list[i];
+
+			// track non-dead users
+			u64 use_count = 0;
+			for(ptr<ir::user> user = node->users; user; user = user->next) {
+				// user is scheduled == valid user
+				if(m_context->schedule.contains(user->node)) {
+					use_count++;
+				}
+			}
+
+			m_context->values[node->get_global_value_index()] = virtual_value{
+				.virtual_register = reg{},
+				.use_count = static_cast<i32>(use_count),
+			};
+		}
+
+		// every phi node should view itself as the previous value, not the new one we're producing
+		const u64 our_phis = phi_values.size();
+
+		for(u64 i = 0; i < our_phis; ++i) {
+			phi_value& value = phi_values[i];
+			value.destination = get_virtual_register(value.phi);
+		}
+
+		if(block_entry->get_id() == region_id) {
+			for(ptr<ir::user> user = block_entry->users; user; user = user->next) {
+				if(
+					user->node->get_id() == phi_id &&
+					user->node->get_data_type().get_id() != static_cast<u8>(ir::data_type_id::MEMORY)
+				) {
+					const ptr<virtual_value> value = &m_context->values[user->node->get_global_value_index()];
+
+					// copy the PHI node into a temporary
+					phi_value phi = {
+						.phi = user->node,
+						.destination = get_virtual_register(user->node)
+					};
+
+					phi_values.push_back(phi);
+
+					const ir::data_type dt = phi.phi->get_data_type();
+					const reg temp = allocate_virtual_register(nullptr, dt);
+					m_context->append_instruction(m_assembler.create_move(dt, temp, phi.destination));
+
+					// assign temporary as the PHI until the end of the BB
+					value->virtual_register = temp;
+				}
+			}
+		}
+
+		if(index == 0) {
+			// select instructions for the entry node
+			select_instruction(m_context->function->get_entry(), reg{});
+		}
+
+		// walk all nodes
+		const ptr<instruction> current = m_context->current_instruction;
+		ptr<instruction> last = nullptr;
+
+		for(u64 i = m_context->work_list.get_size(); i-- > m_context->control_flow_graph.get_size();) {
+			const ptr<ir::node> node = m_context->work_list[i];
+
+			if(node->get_id() == entry_id) {
+				continue;
+			}
+
+			const ptr<virtual_value> value = m_context->get_virtual_value(node);
+			
+			if(node != block_exit && !value->virtual_register.is_valid() && detail::should_rematerialize(node)) {
+				continue;
+			}
+			
+			// attach to dummy list
+			instruction dummy;
+			dummy.next = nullptr;
+			m_context->current_instruction = &dummy;
+			 
+			if(
+				node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::TUPLE) || 
+				node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::CONTROL) ||
+				node->get_data_type().get_id() == static_cast<u8>(ir::data_type_id::MEMORY)
+			) {
+				select_instruction(node, value->virtual_register);
+			}
+			else if(value->use_count > 0 || value->virtual_register.is_valid()) {
+				if(!value->virtual_register.is_valid()) {
+					value->virtual_register = allocate_virtual_register(node, node->get_data_type());
+				}
+			
+				select_instruction(node, value->virtual_register);
+			}
+			else {
+				// dead
+			}
+			
+			ptr<instruction> sequence_start = dummy.next;
+			const ptr<instruction> sequence_end = m_context->current_instruction;
+			ASSERT(sequence_end->next == nullptr, "invalid instruction detected");
+			
+			if(sequence_start != nullptr) {
+				if(last == nullptr) {
+					last = sequence_end;
+					current->next = dummy.next;
+				}
+				else {
+					const ptr<instruction> old_next = current->next;
+					current->next = sequence_start;
+					sequence_end->next = old_next;
+				}
+			}
+		}
+
+		// restore the PHI values to normal
+		for(u64 i = our_phis; i < phi_values.size(); ++i) {
+			const phi_value& value = phi_values[i];
+			m_context->get_virtual_value(value.phi)->virtual_register = value.destination;
+		}
+
+		m_context->current_instruction = last ? last : current;
+
+		if(!block_exit->is_control_flow_terminator()) {
+			// implicit goto
+			const ptr<ir::node> successor_node = detail::get_next_control(block_exit);
+			m_context->append_instruction(m_assembler.create_instruction(static_cast<u16>(x64::instruction_id::TERMINATOR), ir::VOID_TYPE, 0, 0, 0));
+
+			// write back PHIs
+			for(u64 i = 0; i < our_phis; ++i) {
+				const phi_value& value = phi_values[i];
+
+				const reg source = get_virtual_register(value.node);
+				const ir::data_type dt = value.phi->get_data_type();
+
+				// hint_register(value->destination, source);
+				m_context->append_instruction(m_assembler.create_move(dt, value.destination, source));
+			}
+
+			const i32 successor = static_cast<i32>(m_context->control_flow_graph.at(successor_node).id);
+
+			// if the successor isn't our fallthrough block we have to jump to it
+			if(m_context->fallthrough_label != successor) {
+				m_context->append_instruction(m_assembler.create_jump(successor));
+			}
+		}
+
+		// reset
+		phi_values.clear();
+		m_context->work_list.set_size(m_context->control_flow_graph.get_size());
+	}
+
+	auto x64_target::create_scheduled_node(ptr<scheduled_node> parent, ptr<ir::node> node) const -> ptr<scheduled_node> {
+		constexpr ir::node_id projection_id(0, static_cast<u16>(core_node_id::PROJECTION));
+		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
+
+		const auto scheduled = m_context->function->emplace<scheduled_node>();
+
+		scheduled->parent = parent;
+		scheduled->node = node;
+		scheduled->index = 0;
+
+		if(
+			node->is_memory_out_operator() && 
+			node->get_id() != phi_id && 
+			node->get_id() != projection_id
+		) {
+			scheduled->antis = node->inputs[1]->users;
+		}
+
+		return scheduled;
+	}
+
+	void x64_target::fill_phi_nodes(std::vector<scheduled_phi>& phi_nodes, ptr<ir::node> successor, i32 phi_index) {
+		constexpr ir::node_id phi_id(0, static_cast<u16>(core_node_id::PHI));
+
+		for(ptr<ir::user> user = successor->users; user; user = user->next) {
+			if(user->node->get_id() != phi_id) {
+				continue;
+			}
+
+			phi_nodes.push_back({
+				.phi = user->node,
+				.node = user->node->inputs[1 + phi_index]
+			});
+		}
+	}
+
+	auto x64_target::get_virtual_register(ptr<ir::node> node) -> reg {
+		const ptr<virtual_value> value = m_context->get_virtual_value(node);
+
+		if(value == nullptr) {
+			const reg temp = allocate_virtual_register(node, node->get_data_type());
+			select_instruction(node, temp);
+			return temp;
+		}
+
+		value->use_count--;
+
+		if(value->virtual_register.is_valid()) {
+			return value->virtual_register;
+		}
+
+		if(detail::should_rematerialize(node)) {
+			const reg temp = allocate_virtual_register(node, node->get_data_type());
+			select_instruction(node, temp);
+			return temp;
+		}
+
+		const reg i = allocate_virtual_register(node, node->get_data_type());
+		value->virtual_register = i;
+		return i;
+	}
+
+	auto x64_target::allocate_virtual_register(ptr<ir::node> node, ir::data_type data_type) const -> reg {
+		const u64 index = m_context->intervals.size();
+
+		m_context->intervals.emplace_back(std::vector{ utility::range<i32>::max() }, node);
+
+		ASSERT(index < reg::invalid_index, "invalid virtual register index");
+		return { x64::GPR, static_cast<u16>(index) };
+	}
+
+	auto x64_target::is_scheduled_in_block(ptr<ir::basic_block> block, ptr<ir::node> node) const -> bool {
+		const auto it = m_context->schedule.find(node);
+		return it != m_context->schedule.end() && it->second == block && !m_context->work_list.is_visited(node);
+	}
+} // namespace baremetal
