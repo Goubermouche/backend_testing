@@ -32,8 +32,10 @@ namespace baremetal {
 
 		void set_allocator(utility::block_allocator& allocator);
 	protected:
-		[[nodiscard]] auto allocate_instruction() const -> ptr<instruction> {
-			const auto inst = m_allocator->emplace<instruction>();
+		[[nodiscard]] auto allocate_instruction(u8 out, u8 in, u8 temp) const -> ptr<instruction> {
+			const auto inst = m_allocator->emplace<instruction>(out, in, temp);
+			inst->m_operands = utility::memory_view<reg, u8>(*m_allocator, inst->get_operand_count());
+
 			return inst;
 		}
 	protected:

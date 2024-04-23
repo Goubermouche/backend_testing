@@ -46,8 +46,23 @@ namespace baremetal {
 	class instruction {
 	public:
 		instruction();
+		instruction(u8 out_count, u8 in_count, u8 temp_count);
+
+		[[nodiscard]] auto get_out_count() const -> u8;
+		[[nodiscard]] auto get_in_count() const -> u8;
+		[[nodiscard]] auto get_temp_count() const -> u8;
+
+		[[nodiscard]] auto get_operand_count() const -> u8;
 	public:
 		instruction_flags flags;
 		ptr<instruction> next;
+	protected:
+		utility::memory_view<reg, u8> m_operands;
+
+		u8 m_out_count;
+		u8 m_in_count;
+		u8 m_temp_count;
+
+		friend class assembler;
 	};
 } // namespace baremetal
